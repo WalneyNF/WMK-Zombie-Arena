@@ -11,7 +11,7 @@ const cam=new THREE.PerspectiveCamera(76,innerWidth/innerHeight,.1,100);cam.rota
 const render=new THREE.WebGLRenderer({antialias:true});render.setSize(innerWidth,innerHeight);render.setPixelRatio(Math.min(devicePixelRatio,1.5));$('#world').append(render.domElement);
 scene.add(new THREE.HemisphereLight(0xcdd8e2,0x3a3c34,2.2));const sun=new THREE.DirectionalLight(0xffe1b3,2);sun.position.set(7,20,8);scene.add(sun);
 const ground=new THREE.Mesh(new THREE.PlaneGeometry(70,70),new THREE.MeshStandardMaterial({color:0x53645b}));ground.rotation.x=-Math.PI/2;scene.add(ground);
-const walls=[],hitscan=new THREE.Raycaster(),bots=[],keys={};let active=false,health=100,kills=0,wave=1,ammo=30,reserve=120,cool=0,reloading=0,clock=new THREE.Clock(),yaw=0,pitch=0,vy=0,grounded=true,shot=false;
+const walls=[],hitscan=new THREE.Raycaster(),bots=[],keys={};let everStarted=false,active=false,health=100,kills=0,wave=1,ammo=30,reserve=120,cool=0,reloading=0,clock=new THREE.Clock(),yaw=0,pitch=0,vy=0,grounded=true,shot=false;
 const wallmat=new THREE.MeshStandardMaterial({color:0x6a7975,roughness:.91}),botmat=new THREE.MeshStandardMaterial({color:0x577c59}),headmat=new THREE.MeshStandardMaterial({color:0x99b99a});
 function block(x,z,w,d,h=3){const mesh=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),wallmat);mesh.position.set(x,h/2,z);scene.add(mesh);walls.push({mesh,x,z,w,d})}
 function clearMap(){for(const w of walls)scene.remove(w.mesh);walls.length=0}
@@ -23,7 +23,7 @@ function startWave(){const target=Math.min(4+wave*2,22);let tries=0;while(bots.l
 function menu(title,description){active=false;document.body.classList.remove('playing');$('#overlay').classList.remove('hidden');$('#headline').textContent=title;$('#description').textContent=description;$('#start').textContent=health<=0?'▶ JOGAR NOVAMENTE':'▶ INICIAR / CONTINUAR';if(document.pointerLockElement===render.domElement)document.exitPointerLock()}
 function reset(){health=100;kills=0;wave=1;ammo=30;reserve=120;cool=0;reloading=0;cam.position.set(0,1.65,15);yaw=0;pitch=0;cam.rotation.set(0,0,0,'YXZ');removeBots();buildMap();startWave();updateHud()}
 function updateHud(){$('#health').textContent=Math.ceil(health);$('#kills').textContent='Eliminações: '+kills;$('#ammo').textContent=reloading>0?'RECARREGANDO':ammo+' / '+reserve;$('#remaining').textContent='Zumbis: '+bots.length}
-$('#start').onclick=()=>{if(health<=0||kills===0&&wave===1&&!active)reset();render.domElement.requestPointerLock().catch(()=>{$('#description').textContent='Autorize o controle do mouse para começar.'})};
+$('#start').onclick=()=>{if(health<=0||!everStarted){reset();everStarted=true}render.domElement.requestPointerLock().catch(()=>{$('#description').textContent='Autorize o controle do mouse para começar.'})};
 document.addEventListener('pointerlockchange',()=>{if(document.pointerLockElement===render.domElement){active=true;document.body.classList.add('playing');$('#overlay').classList.add('hidden')}else if(active){menu('JOGO PAUSADO','Clique em iniciar para continuar.')}});
 document.addEventListener('mousemove',e=>{if(!active)return;yaw-=e.movementX*.0022;pitch=Math.max(-1.4,Math.min(1.4,pitch-e.movementY*.0022));cam.rotation.set(pitch,yaw,0,'YXZ')});
 document.addEventListener('keydown',e=>{keys[e.code]=true;if(e.code==='Space')e.preventDefault();if(e.code==='KeyR'&&ammo<30&&reserve>0&&!reloading)reloading=1.5});document.addEventListener('keyup',e=>keys[e.code]=false);
