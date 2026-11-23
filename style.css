@@ -494,3 +494,21 @@ body.third-person #scopeOverlay:not([hidden]){display:none;}
 #gameEndOverlay{position:fixed;inset:0;z-index:120;display:flex;align-items:center;justify-content:center;background:rgba(6,12,14,.88);padding:16px}
 #gameEndOverlay.hidden{display:none!important}
 #gameEndOverlay .wmk-pause-card{max-width:min(620px,95vw);width:100%;}
+
+
+/* RC4 UI HOTFIX: menu principal compacto, evitando 5 linhas de botões no rodapé */
+#overlay .menu-bottom{flex-shrink:0;max-height:min(43dvh,440px);overflow-y:auto;scrollbar-color:#55775f #10231e}
+#overlay .wmk-main-action{display:block;max-width:100%;margin:0}
+#overlay .wmk-main-action #startButton{display:block;width:100%;min-height:49px;font-size:14px;letter-spacing:1px;padding:13px 18px}
+#overlay .wmk-tools-collapse{margin-top:10px;border:1px solid #43634b;border-radius:7px;background:#16291f}
+#overlay .wmk-tools-collapse summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;gap:12px;align-items:center;padding:10px 12px;color:#d5edc0;font-size:12px;font-weight:700}
+#overlay .wmk-tools-collapse summary::-webkit-details-marker{display:none}
+#overlay .wmk-tools-collapse summary::before{content:'▸';color:#a6ef88}
+#overlay .wmk-tools-collapse[open] summary::before{content:'▾'}
+#overlay .wmk-tools-count{color:#9dbba9;font-size:10px;font-weight:400;white-space:nowrap}
+#overlay .wmk-tools-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;padding:9px;border-top:1px solid #33513e}
+#overlay .wmk-tools-grid .menu-editor{min-height:38px;font-size:10px;line-height:1.35;letter-spacing:0;padding:8px;text-align:center;white-space:normal;overflow-wrap:anywhere}
+#overlay .wmk-tools-grid .menu-editor:hover{border-color:#b7ef9f;background:#31563b}
+#overlay .wmk-tools-collapse summary:focus-visible,#overlay .wmk-tools-grid a:focus-visible{outline:2px solid #d8ec96;outline-offset:2px}
+@media(max-width:720px){#overlay .wmk-tools-grid{grid-template-columns:repeat(2,minmax(0,1fr))}#overlay .wmk-tools-collapse summary{font-size:11px}}
+@media(max-width:440px){#overlay .wmk-tools-grid{grid-template-columns:1fr 1fr}}
