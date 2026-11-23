@@ -8,9 +8,9 @@
 <label for="period">Iluminação</label><select id="period"><option value="day">Dia</option><option value="dusk">Entardecer</option><option value="night">Noite</option></select>
 <label for="quality">Qualidade</label><select id="quality"><option value="low">Baixa (PC modesto)</option><option value="medium" selected>Média</option><option value="high">Alta</option></select>
 <div class="bar"><button id="generate">Gerar nova cidade</button><button id="pause">Pausar trânsito</button></div>
-<div class="bar"><button id="export">Exportar mapa JSON</button><button id="resetCamera">Câmera padrão</button></div>
+<div class="bar"><button id="export">Exportar mapa JSON</button><button id="editCity" style="background:#3b703e;font-weight:700">✎ EDITAR CÓPIA NO MAP STUDIO</button><button id="resetCamera">Câmera padrão</button></div>
 <p class="hint">Casas e edifícios autorais construídos por geometria 3D. Trânsito experimental em circuitos viários, com redução de velocidade quando outro veículo ocupa a mesma rota.</p>
-<p class="hint">Este protótipo ainda não permite dirigir, não simula pedestres e não implementa navegação completa por A*. O JSON exporta geometria urbana e metadados de tráfego para evolução posterior.</p>
+<p class="hint"><b>Editar cópia:</b> abre o Map Studio com os edifícios e as ruas convertidos para objetos do mapa. Salve com outro nome e use Exportar JSON. O trânsito animado ainda permanece exclusivo do gerador.</p><p class="hint">Este protótipo ainda não permite dirigir, não simula pedestres e não implementa navegação completa por A*. O JSON exporta geometria urbana e metadados de tráfego para evolução posterior.</p>
 </div></section>
 <section class="panel" id="help" style="right:14px;bottom:48px;width:260px"><div class="head">⌨ Controles • arraste</div><div class="body">Botão esquerdo: girar visão<br>Botão do meio: mover câmera<br>Roda: aproximar/afastar<br>Enquadrar: voltar a ver o bairro<br>Gerar: mudar a disposição dos prédios<br>Exportar: salvar o projeto em JSON<br><br>Walney Moreira Klein<br>walneyk@hotmail.com</div></section>
 <footer class="status"><span id="state">Iniciando Bairro Zero…</span><span id="objects">Objetos: 0</span><span id="vehicles">Carros: 0</span><span class="tag">WMK • CV-01 • develop</span></footer><script type="module" src="cidade-viva.js"></script></body></html>
