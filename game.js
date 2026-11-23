@@ -1,4 +1,6 @@
 import {getMapCatalog,loadCatalogMap,validateMap,saveBrowserMap} from './map-library.js';
+import {earnW,getWallet,formatW} from './wmk-economy.js';
+import {upgradeMultiplier} from './wmk-shop-inventory.js';
 import {WEAPONS, WEAPON_ORDER, BUY_CATEGORIES, SKINS} from './weapons.js';
 import * as THREE from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
@@ -793,7 +795,8 @@ import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
     function eliminateBot(bot){
       if(!bot.alive)return;
       bot.alive=false;scene.remove(bot.group);kills++;score+=100;waveRemaining--;
-      showToast('ZUMBI ELIMINADO +100');updateHUD();
+       const earned=earnW(10,'Eliminação de inimigo ('+currentMode+')');if(!earned.ok)console.warn('WMK Economy:',earned.error);
+      showToast('INIMIGO ELIMINADO +100 pontos / +10 W$');updateHUD();
       if(currentMode==='survival'&&waveRemaining===0){waveCooldown=3.8;showToast(`ONDA ${wave} CONCLUÍDA`);}
       if(currentMode==='training'){scheduleTargetRespawn(bot);}
       if(currentMode==='bomb' && waveRemaining<=0)finishGame(true);
@@ -927,7 +930,7 @@ import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
           if(bot&&bot.alive){
             hitAny=true;
             const head=['botHead','botHelmet'].includes(hits[0].object.name);
-            bot.health-=weapon.damage*(head?weapon.headMultiplier:1);
+            bot.health-=weapon.damage*upgradeMultiplier(selectedWeapon)*(head?weapon.headMultiplier:1);
             if(head)showToast('ACERTO NA CABEÇA');
             if(bot.health<=0)eliminateBot(bot);
           }
