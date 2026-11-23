@@ -1,4 +1,4 @@
-> **v1.7.0 — pacote local:** arena Fábrica Horizonte, luneta AWP, editor com modelos GLB e prefabs. É necessário publicar a versão completa para atualizar o GitHub Pages.
+> **PUBLICAÇÃO E FONTES:** `main` é a versão estável destinada ao GitHub Pages; `develop` é a branch de desenvolvimento. Para criar ZIPs versionados com o código-fonte, envie uma tag `vX.Y.Z`: o GitHub Actions gera um Release automaticamente. **[Manual completo de atualização e publicação](manuais/publicacao-versoes.html)**. Uma versão criada fora do repositório só passa a valer quando seus arquivos são enviados ao GitHub.\n\n> **v1.7.0 — pacote local:** arena Fábrica Horizonte, luneta AWP, editor com modelos GLB e prefabs. É necessário publicar a versão completa para atualizar o GitHub Pages.
 
 <p align="center"><img src="assets/logo.svg" width="720" alt="WMK Zombie Arena — logo oficial"></p>
 
