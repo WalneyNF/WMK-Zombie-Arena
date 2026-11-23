@@ -119,11 +119,13 @@ $('#mapNameInput').addEventListener('input',scheduleAutoSave);
 window.addEventListener('pagehide',persistNow);
 window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
 let initial=null;
+const cityHandoff=(()=>{if(new URLSearchParams(location.search).get('fromCity')!=='1')return null;try{const data=JSON.parse(localStorage.getItem('wmk_city_edit_handoff_v1')||'null');return data?.map?.format==='wmk-zombie-map'?data.map:null}catch{return null}})();
 try{
   const draft=JSON.parse(localStorage.getItem(DRAFT_KEY)||'null');
   const committed=JSON.parse(localStorage.getItem(MAP_KEY)||'null');
   initial=draft?.map?.format==='wmk-zombie-map'?draft.map:committed;
 }catch(err){console.warn('Não foi possível restaurar o mapa salvo:',err)}
+if(cityHandoff){initial=cityHandoff;localStorage.removeItem('wmk_city_edit_handoff_v1');history=[];redo=[];}
 if(initial){try{load(initial,false)}catch{initial=null}}
 if(!initial){skipHistory=true;add('player',{x:0,z:14});add('spawn',{x:-13,z:-13});add('spawn',{x:13,z:-13});add('container',{x:-6,z:0});add('wall',{x:5,z:0});skipHistory=false;history=[]}
 editorReady=true;
