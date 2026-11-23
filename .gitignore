@@ -1,0 +1,9 @@
+# Arquivos de desenvolvimento e temporários
+.DS_Store
+Thumbs.db
+.vscode/
+node_modules/
+dist/
+build/
+*.log
+*.tmp

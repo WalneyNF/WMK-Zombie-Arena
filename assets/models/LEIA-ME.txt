@@ -1,0 +1,1 @@
+Coloque aqui arquivos .glb exportados do Blender. Use o caminho assets/models/nome.glb no editor. Não inclua arquivos de jogos comerciais sem licença.
