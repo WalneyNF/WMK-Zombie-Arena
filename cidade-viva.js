@@ -104,8 +104,37 @@ function updateTraffic(dt){
   const s=sample(route,v.dist);v.group.position.set(s.p.x,.08,s.p.z);v.group.rotation.y=s.angle;
  }
 }
+// WMK Cidade Viva: relógio virtual e infestação com entidades visuais de teste.
+let worldTime=8*60, zombieElapsed=0;const zombies=[];
+function zombieMesh(){
+ const group=new THREE.Group();
+ const body=new THREE.Mesh(new THREE.BoxGeometry(.75,1.25,.44),material('#668b63'));body.position.y=1.16;group.add(body);
+ const head=new THREE.Mesh(new THREE.SphereGeometry(.32,8,6),material('#a2b791'));head.position.y=2.02;group.add(head);
+ const arms=new THREE.Mesh(new THREE.BoxGeometry(1.35,.25,.3),material('#75936d'));arms.position.y=1.42;group.add(arms);
+ return group;
+}
+function clearZombies(){for(const zombie of zombies){world.remove(zombie.group);zombie.group.traverse(n=>{if(n.isMesh){n.geometry.dispose();n.material.dispose()}})}zombies.length=0}
+function isNight(){return worldTime>=19*60||worldTime<5*60}
+function canSpawnZombies(){const rule=$('zombieRule').value;return rule==='always'||(rule==='night'&&isNight())}
+function updateZombies(dt){
+ const max=Number($('zombieCount').value);
+ if(!canSpawnZombies()||!max){if(zombies.length)clearZombies();$('zombieStatus').textContent='Zumbis: 0';return}
+ zombieElapsed+=dt;
+ if(zombieElapsed>.6&&zombies.length<max){zombieElapsed=0;const group=zombieMesh();const side=Math.floor(random()*4),edge=117,off=(random()-.5)*230;group.position.set(side===0?-edge:side===1?edge:off,0,side===2?-edge:side===3?edge:off);world.add(group);zombies.push({group,speed:.5+random()*.6,target:new THREE.Vector3((random()-.5)*45,0,(random()-.5)*45)})}
+ for(const z of zombies){const delta=z.target.clone().sub(z.group.position);delta.y=0;if(delta.length()<2){z.target.set((random()-.5)*45,0,(random()-.5)*45);continue}z.group.position.addScaledVector(delta.normalize(),z.speed*dt);z.group.rotation.y=Math.atan2(delta.x,delta.z)}
+ $('zombieStatus').textContent='Zumbis: '+zombies.length;
+}
+function updateClock(dt){
+ if($('cycleMode').value==='auto'){
+   worldTime=(worldTime+dt*1440/(Number($('cycleMinutes').value)*60))%1440;
+   const hour=worldTime/60;
+   const next=hour>=19||hour<5?'night':hour>=17?'dusk':'day';
+   if($('period').value!==next){$('period').value=next;lighting()}
+ }
+ $('clockTime').textContent='Hora: '+String(Math.floor(worldTime/60)).padStart(2,'0')+':'+String(Math.floor(worldTime%60)).padStart(2,'0')+(isNight()?' • noite':'');
+}
 function build(){
- clearWorld();seed=Math.max(1,Math.min(999999,Number($('seed').value)||2026));addRoads();generateBuildings();resetCars();
+ clearZombies();worldTime=8*60;zombieElapsed=0;clearWorld();seed=Math.max(1,Math.min(999999,Number($('seed').value)||2026));addRoads();generateBuildings();resetCars();
  $('state').textContent='Bairro Zero gerado • '+WORLD_SIZE+' × '+WORLD_SIZE+' m • '+(ticking?'trânsito ativo':'pausado');
  $('objects').textContent='Objetos: '+meta.length;
 }
@@ -116,7 +145,7 @@ function lighting(){
  renderer.setPixelRatio(Math.min(devicePixelRatio,quality==='low'?1:quality==='medium'?1.35:1.75));
 }
 function exportData(){
- const data={format:'wmk-zombie-map',version:1,name:'Bairro Zero — Cidade Viva',world:{width:WORLD_SIZE,depth:WORLD_SIZE},objects:[...meta,{id:'spawn_player',name:'Jogador',type:'player',x:0,y:1,z:0,w:.75,h:1.7,d:.75,color:'#65cafa',solid:false}],roads:{format:'wmk-city-v1',loops:circuits},traffic:{enabled:true,count:vehicles.length,routes:'circuits',speedScale:Number($('speed').value)},generatedBy:'WMK Cidade Viva CV-01',seed:Number($('seed').value)};
+ const data={format:'wmk-zombie-map',version:1,name:'Bairro Zero — Cidade Viva',world:{width:WORLD_SIZE,depth:WORLD_SIZE},objects:[...meta,{id:'spawn_player',name:'Jogador',type:'player',x:0,y:1,z:0,w:.75,h:1.7,d:.75,color:'#65cafa',solid:false}],roads:{format:'wmk-city-v1',loops:circuits},traffic:{enabled:true,count:vehicles.length,routes:'circuits',speedScale:Number($('speed').value)},citySimulation:{cycleMode:$('cycleMode').value,cycleMinutes:Number($('cycleMinutes').value),startTimeMinutes:Math.floor(worldTime),zombies:{rule:$('zombieRule').value,maxAlive:Number($('zombieCount').value)}},generatedBy:'WMK Cidade Viva CV-01',seed:Number($('seed').value)};
  return {...data,size:256,world:{width:256,depth:256}};
 }
 function download(){
@@ -145,7 +174,7 @@ function editCity(){
 }
 $('editCity').onclick=editCity;
 function fit(){orbit.target.set(0,0,0);camera.position.set(145,125,145);orbit.update()}
-$('generate').onclick=build;$('cars').oninput=resetCars;
+$('zombieCount').oninput=()=>{$('zombieCountLabel').textContent=$('zombieCount').value};$('zombieRule').onchange=()=>{if(!canSpawnZombies())clearZombies()};$('cycleMode').onchange=()=>{if($('cycleMode').value==='manual')lighting()};$('generate').onclick=build;$('cars').oninput=resetCars;
 $('speed').oninput=()=>{$('speedLabel').textContent=$('speed').value+'×'};
 $('pause').onclick=()=>{ticking=!ticking;$('pause').textContent=ticking?'Pausar trânsito':'Continuar trânsito';$('state').textContent=ticking?'Trânsito ativo':'Trânsito pausado'};
 $('export').onclick=download;$('fit').onclick=fit;$('resetCamera').onclick=fit;$('period').onchange=lighting;$('quality').onchange=lighting;
@@ -156,4 +185,4 @@ for(const panel of document.querySelectorAll('.panel')){
  try{const saved=JSON.parse(localStorage.getItem('wmk_city_panel_'+panel.id)||'null');if(saved){panel.style.right='auto';panel.style.bottom='auto';for(const p of ['left','top'])if(saved[p])panel.style[p]=saved[p];if(saved.width)panel.style.width=saved.width+'px';if(saved.height)panel.style.height=saved.height+'px'}}catch{}
 }
 window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
-build();lighting();const clock=new THREE.Clock();function animate(){requestAnimationFrame(animate);const dt=Math.min(.05,clock.getDelta());orbit.update();if(ticking)updateTraffic(dt*Number($('speed').value));renderer.render(scene,camera)}animate();
+build();lighting();const clock=new THREE.Clock();function animate(){requestAnimationFrame(animate);const dt=Math.min(.05,clock.getDelta());orbit.update();if(ticking){const scaled=dt*Number($('speed').value);updateTraffic(scaled);updateClock(scaled);updateZombies(scaled)}renderer.render(scene,camera)}animate();
