@@ -1,4 +1,4 @@
-<p align="center"><img src="assets/logo.svg" width="720" alt="WMK Zombie Arena"></p>
+> **Estado do site (22/11/2026):** a raiz do repositório contém uma demonstração FPS 3D reduzida. O pacote completo **v1.6.0** (jogo + editor + marketplace + mapas) ainda precisa ser publicado. Extraia o pacote fornecido no ChatGPT e execute **PUBLICAR-GITHUB.bat** no Windows, ou envie todos os arquivos para a raiz. Após isso, configure GitHub Pages para **GitHub Actions**.\n\n<p align="center"><img src="assets/logo.svg" width="720" alt="WMK Zombie Arena"></p>
 
 # WMK Zombie Arena
 
