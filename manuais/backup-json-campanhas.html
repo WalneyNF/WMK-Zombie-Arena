@@ -1,0 +1,40 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>WMK — Backup JSON, saves e campanhas</title><style>:root{color-scheme:dark}body{font:16px/1.65 system-ui;background:#0c1917;color:#e8f3ea;max-width:1050px;padding:24px;margin:auto}header,section{padding:22px;margin:15px 0;background:#162923;border:1px solid #45674d;border-radius:10px}h1,h2{color:#b9f09c}a{color:#c6f9a8}pre,code{background:#071410;padding:4px 6px;border-radius:4px}pre{overflow:auto;padding:14px}.warn{padding:13px;border-left:4px solid #e9c671;background:#343123}table{width:100%;border-collapse:collapse}td,th{padding:8px;border-bottom:1px solid #43654e;text-align:left}</style></head><body><header><a href="../wmk-configuracoes.html">← Configurações / Backup</a><h1>Manual WMK: salvamento, backup JSON e campanhas</h1><p>Walney Moreira Klein — walneyk@hotmail.com · 23/11/2026 · Branch develop</p><p class="warn"><strong>ATENÇÃO:</strong> seu navegador pode apagar saves locais. Não considere o localStorage um backup. Exporte o JSON periodicamente e guarde uma cópia em pasta externa ou nuvem de sua escolha.</p></header>
+<section><h2>1. Como fazer o backup completo</h2><ol><li>Abra <a href="../wmk-configuracoes.html">Configurações → Backup JSON</a> no mesmo endereço em que joga (ex.: localhost:5500 ou GitHub Pages).</li><li>Clique em <strong>Atualizar lista</strong> para localizar os registros WMK no navegador.</li><li>Deixe todos selecionados, ou desmarque o que não deseja exportar.</li><li>Clique <strong>EXPORTAR BACKUP JSON</strong>.</li><li>Guarde o arquivo <code>WMK-Backup-AAAA-MM-DD.json</code> fora do navegador. Recomenda-se guardar também uma cópia em outro disco ou nuvem.</li></ol><p>Para outros computadores, leve o arquivo JSON e importe no novo navegador. É necessário abrir a página pelo mesmo domínio/origem para acessar registros anteriores. Como <code>localhost:5500</code> e <code>localhost:4173</code> são origens distintas, têm armazenamentos separados.</p></section>
+<section><h2>2. Como restaurar sem perder sua evolução atual</h2><ol><li>Antes de restaurar, faça um <strong>backup do estado atual</strong>.</li><li>Clique em Escolher arquivo e selecione o JSON exportado pelo menu.</li><li>Verifique a data do arquivo e a quantidade de registros.</li><li>Pressione <strong>RESTAURAR BACKUP</strong> e confirme o aviso.</li><li>Reabra o jogo e os editores para recarregar os dados.</li></ol><p>Importação mescla as chaves presentes no arquivo, <strong>sobrescrevendo os valores dessas chaves</strong>. Chaves locais não incluídas permanecem. Não há fusão automática entre moedas ou inventários de duas versões diferentes.</p></section>
+<section><h2>3. O que entra, o que fica de fora</h2><table><tr><th>Entra quando armazenado localmente</th><th>Não entra automaticamente</th></tr><tr><td>Saldo e histórico W$; itens adquiridos</td><td>GLB do Blender que está apenas no computador</td></tr><tr><td>Mapas JSON salvos no navegador; prefabs</td><td>PNG de skins/referências externos, vídeos ou WAV externos</td></tr><tr><td>Configuração de Cidade Viva salva como registro WMK</td><td>Mapa que só foi exportado como arquivo sem cópia no localStorage</td></tr><tr><td>Layouts dos painéis, skins e avatares persistidos</td><td>Dados guardados em outro navegador/domínio/porta</td></tr></table><p>Backups são limitados a 8 MB e 250 registros, com máximo de 2 milhões de caracteres por registro. Dados com nome indicativo de token, senha ou credencial não são exportados. Arquivos grandes devem ser guardados separadamente.</p></section>
+<section><h2>4. JSON de backup: estrutura técnica</h2><pre>{
+ "format": "wmk-backup",
+ "schemaVersion": 1,
+ "createdAt": "2026-11-23T00:00:00.000Z",
+ "app": "WMK Zombie Arena",
+ "entries": {
+   "wmk_wallet_v1": "{\"balance\":500,\"history\":[]}",
+   "wmk_shop_inventory_v1": "{\"skin_cyan\":1}"
+ }
+}</pre><p>Os valores em <code>entries</code> são <em>strings</em> porque reproduzem precisamente os dados armazenados no navegador. Não há execução de código importado. Cada chave passa por validação de nome e tamanho. O importador mantém uma cópia dos valores existentes para tentar restaurá-los se ocorrer erro de gravação.</p></section>
+<section><h2>5. Cuidados com segurança e desempenho</h2><p>Não aceite backups de origem desconhecida. Um arquivo pode conter dados manipulados; use apenas arquivos que você exportou ou revisou. A restauração do backup não garante compatibilidade entre versões que alteraram os formatos internos. O armazenamento local não serve como economia segura para multiplayer: em jogos online o servidor deve autorizar compras e recompensas.</p></section>
+<section><h2>6. Campanhas e missões: arquitetura planejada</h2><p>A campanha terá <strong>slots de save</strong> e <strong>missões JSON</strong>, separando definição da missão, estado do mundo e progresso do jogador. Abaixo está um exemplo de formato <strong>proposto</strong>, ainda não implementado no motor:</p><pre>{
+ "format": "wmk-campaign-save",
+ "schemaVersion": 1,
+ "slot": 1,
+ "campaignId": "ultimo-dia-normal",
+ "missionId": "defender-oficina",
+ "checkpointId": "oficina-inicio-noite",
+ "player": {
+   "health": 88,
+   "avatarId": "survivor-default",
+   "wallet": 920,
+   "inventory": ["pistol", "medkit"]
+ },
+ "world": {
+   "mapId": "bairro-zero",
+   "timeMinutes": 1190,
+   "zombieRule": "night",
+   "vehicleStates": []
+ },
+ "objectives": [
+   {"id":"gerador","complete":true},
+   {"id":"defender","complete":false}
+ ]
+}</pre><p>Missões serão dados declarativos, sem JavaScript arbitrário. O editor validará IDs, gatilhos, condições de vitória/derrota e recompensas. O jogo aplicará eventos por mecanismos internos registrados.</p></section>
+<section><h2>7. Sequência de campanha prevista</h2><ol><li><strong>O Último Dia Normal:</strong> explorar o Bairro Zero antes do surto.</li><li><strong>Sinal de Emergência:</strong> obter rádio e suprimentos.</li><li><strong>Defender a Oficina:</strong> instalar barricadas e resistir à primeira noite.</li><li><strong>Fuga da Zona Zero:</strong> encontrar combustível, veículo e saída.</li><li><strong>A Noite do Hospital:</strong> enfrentar um zumbi especial e resgatar sobreviventes.</li></ol><p>Futuras missões poderão ser compartilhadas com mapa, zumbis e armas próprios, desde que os assets tenham licenças apropriadas.</p></section><footer>WMK Zombie Arena • Manual de backup em português — <a href="../roadmap.html">Roadmap</a></footer></body></html>
