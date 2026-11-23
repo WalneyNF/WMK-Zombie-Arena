@@ -1,4 +1,4 @@
-> **v1.7.0 — pacote local:** arena Fábrica Horizonte, luneta AWP, editor com modelos GLB e prefabs. É necessário publicar a versão completa para atualizar o GitHub Pages.
+> 🏙 **NOVO EM DESENVOLVIMENTO — WMK CIDADE VIVA CV-01:** [Abrir protótipo Bairro Zero 3D](cidade-viva.html) · [Roadmap completo](roadmap.html). O protótipo possui ruas, casas e trânsito experimental. Ainda não está integrado ao FPS principal nem à main/Pages.\n\n> **v1.7.0 — pacote local:** arena Fábrica Horizonte, luneta AWP, editor com modelos GLB e prefabs. É necessário publicar a versão completa para atualizar o GitHub Pages.
 
 <p align="center"><img src="assets/logo.svg" width="720" alt="WMK Zombie Arena — logo oficial"></p>
 
