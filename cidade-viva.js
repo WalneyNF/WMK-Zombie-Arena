@@ -115,12 +115,35 @@ function lighting(){
  scene.background=new THREE.Color(params[0]);scene.fog.color.set(params[0]);scene.fog.near=params[3];scene.fog.far=params[4];hemi.intensity=params[1];sun.intensity=params[2];
  renderer.setPixelRatio(Math.min(devicePixelRatio,quality==='low'?1:quality==='medium'?1.35:1.75));
 }
-function download(){
+function exportData(){
  const data={format:'wmk-zombie-map',version:1,name:'Bairro Zero — Cidade Viva',world:{width:WORLD_SIZE,depth:WORLD_SIZE},objects:[...meta,{id:'spawn_player',name:'Jogador',type:'player',x:0,y:1,z:0,w:.75,h:1.7,d:.75,color:'#65cafa',solid:false}],roads:{format:'wmk-city-v1',loops:circuits},traffic:{enabled:true,count:vehicles.length,routes:'circuits',speedScale:Number($('speed').value)},generatedBy:'WMK Cidade Viva CV-01',seed:Number($('seed').value)};
+ return {...data,size:256,world:{width:256,depth:256}};
+}
+function download(){
+ const data=exportData();
  const url=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));
  const a=document.createElement('a');a.href=url;a.download='wmk-bairro-zero-'+seed+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),2500);
  $('state').textContent='Mapa JSON exportado. Trânsito ainda requer motor Cidade Viva.';
 }
+function editCity(){
+ try{
+   const src=exportData();
+   const name=prompt('Nome do NOVO mapa baseado no Bairro Zero:', 'Bairro Zero — minha versão');
+   if(name===null)return;
+   const copy={...src,name:String(name).trim().slice(0,70)||'Minha cidade', objects:src.objects.map(o=>({...o})), size:256};
+   // Camada de ruas como geometria editável; todo objeto passa a ser selecionável no editor.
+   let idx=1;
+   for(const p of [-80,-25,30,85]){
+      copy.objects.push({id:'road_x_'+idx++,name:'Via norte-sul',type:'floor',x:p,y:0.005,z:0,w:11,h:.09,d:244,ry:0,color:'#353c41',solid:false});
+      copy.objects.push({id:'road_z_'+idx++,name:'Via leste-oeste',type:'floor',x:0,y:0.005,z:p,w:244,h:.09,d:11,ry:0,color:'#353c41',solid:false});
+   }
+   const draft={savedAt:Date.now(),map:copy};
+   localStorage.setItem('wmk_city_edit_handoff_v1',JSON.stringify(draft));
+   // Manter mapa atual: a importação só acontece no editor após clicar em editar.
+   location.href='editor.html?fromCity=1';
+ }catch(err){alert('Não foi possível abrir o editor: '+err.message)}
+}
+$('editCity').onclick=editCity;
 function fit(){orbit.target.set(0,0,0);camera.position.set(145,125,145);orbit.update()}
 $('generate').onclick=build;$('cars').oninput=resetCars;
 $('speed').oninput=()=>{$('speedLabel').textContent=$('speed').value+'×'};
