@@ -1,0 +1,63 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>WMK - editor-mapas</title><style>body{max-width:1000px;margin:auto;padding:24px;font:16px/1.65 system-ui;background:#0e1916;color:#e4eee3}h1,h2,h3{color:#b6ef8c}a{color:#c4e79a}table{border-collapse:collapse;width:100%;display:block;overflow-x:auto}th,td{padding:8px 12px;border:1px solid #44604a;text-align:left}pre{overflow-x:auto;background:#1c2823;padding:14px;border-radius:8px}code{background:#26382e;padding:2px 5px}nav{display:flex;flex-wrap:wrap;gap:14px;border-bottom:1px solid #536651;padding-bottom:12px}blockquote{border-left:3px solid #a2d889;padding-left:14px}img{max-width:100%}</style></head><body><nav><a href="../index.html">Jogo</a><a href="../editor.html">Editor</a><a href="../roadmap.html">Roadmap</a><a href="usuario.html">Jogador</a><a href="desenvolvedor.html">Desenvolvedor</a><a href="editor-mapas.html">Editor</a><a href="mecanicas.html">Mecânicas</a><a href="pesquisa-fps.html">Pesquisa</a><a href="arsenal-skins.html">Arsenal e skins</a></nav><h1>Manual do editor de mapas 3D — v1.4.0</h1>
+<p><strong>Autor:</strong> Walney Moreira Klein — walneyk@hotmail.com</p>
+<h2>Iniciar</h2>
+<p>Abra <code>editor.html</code> pelo Live Server do VS Code. É necessária internet para carregar Three.js e seus controles. Acesse pelo botão <strong>Abrir editor de mapas 3D</strong> no menu do jogo.</p>
+<h2>Trabalho básico</h2>
+<ol>
+<li>Clique em <strong>Novo</strong> ou mantenha o mapa que veio carregado.</li>
+<li>Na Biblioteca, clique em Parede, Caixa, Contêiner, Cobertura ou Prédio para incluir objetos.</li>
+<li>Clique no objeto da cena ou na Hierarquia; <strong>W</strong> move, <strong>E</strong> gira, <strong>R</strong> altera escala.</li>
+<li>Ajuste posição, dimensões, cor e colisão no painel Propriedades.</li>
+<li>Insira <strong>Início jogador</strong> e pelo menos um <strong>Spawn zumbi</strong> longe de obstáculos.</li>
+<li>Clique em <strong>Salvar no navegador</strong>, <strong>Exportar JSON</strong> para fazer backup ou <strong>Testar no jogo</strong> para abrir o FPS com o mapa.</li>
+</ol>
+<h2>Câmera</h2>
+<p>Botão direito orbita, roda aproxima/afasta, botão do meio arrasta a visualização. F foca no objeto. Os painéis podem ser arrastados pelo título, e suas posições são persistidas localmente.</p>
+<h2>Atalhos</h2>
+<table>
+<thead>
+<tr>
+  <th>Atalho</th>
+  <th>Função</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>W</td>
+  <td>Gizmo de movimentação</td>
+</tr>
+<tr>
+  <td>E</td>
+  <td>Gizmo de rotação</td>
+</tr>
+<tr>
+  <td>R</td>
+  <td>Gizmo de escala</td>
+</tr>
+<tr>
+  <td>Ctrl+D</td>
+  <td>Duplicar</td>
+</tr>
+<tr>
+  <td>Delete</td>
+  <td>Excluir</td>
+</tr>
+<tr>
+  <td>Ctrl+Z / Ctrl+Y</td>
+  <td>Desfazer / refazer</td>
+</tr>
+<tr>
+  <td>F</td>
+  <td>Focar</td>
+</tr>
+</tbody>
+</table>
+<h2>Formato JSON</h2>
+<p><code>format: 'wmk-zombie-map'</code>, <code>version: 1</code>, <code>name</code>, <code>objects</code>. Cada objeto inclui <code>id</code>, <code>type</code>, <code>x</code>, <code>y</code>, <code>z</code>, <code>w</code>, <code>h</code>, <code>d</code>, <code>ry</code> (radianos), <code>color</code> e <code>solid</code>. <code>spawn</code> marca os pontos para zumbis; <code>player</code> marca o ponto inicial do jogador. Os demais objetos são sólidos a menos que <code>solid</code> seja <code>false</code>.</p>
+<h2>Limitações desta versão</h2>
+<p>O editor é baseado em primitivas geométricas, não em modelos GLB. O FPS usa obstáculos retangulares 2D para movimento; a rotação usa AABB conservadora e pode tornar a colisão maior do que a malha. O editor limita a importação a 500 objetos, mas mapas densos reduzem o FPS. Ainda não existe navegação inteligente de zumbis, terreno com altura, materiais texturizados ou sistema de portas. O armazenamento no navegador vale apenas para a mesma origem (domínio e porta); <strong>exporte o JSON para backup</strong>. O jogo original permanece com seus três mapas além do mapa personalizado.</p>
+<h2>Teste sugerido</h2>
+<p>Crie uma parede em X=0, Z=0 com tamanho 4 × 3 × 0,5, coloque o spawn no outro lado, salve e teste tiros e colisão. Depois rode a parede 45 graus e observe a limitação da colisão.</p>
+<h2>Persistência (v1.4.1)</h2>
+<p>O editor mantém um <strong>rascunho automático</strong> no armazenamento local do navegador após alterar objetos e nome do mapa. Recarregar a página restaura este rascunho. <strong>Salvar no navegador</strong> confirma o mapa que será usado ao clicar em <strong>Testar no jogo</strong>. <strong>Exportar JSON</strong> baixa uma cópia e também salva no navegador. Se arquivos forem editados usando Live Server e a página atualizar automaticamente, os objetos editados devem ser restaurados. Faça exportação JSON regularmente, pois o localStorage depende do navegador e do endereço usado.</p>
+<footer>Walney Moreira Klein — walneyk@hotmail.com</footer></body></html>
