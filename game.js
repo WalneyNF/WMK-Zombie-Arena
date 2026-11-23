@@ -1,8 +1,15 @@
+import {allZombieTypes,BUILTIN_ZOMBIES} from './zombie-types.js';
+import {injectCommunitySkins} from './custom-skins.js';
+import {installCommunityWeapons} from './custom-weapons.js';
 import {getMapCatalog,loadCatalogMap,validateMap,saveBrowserMap} from './map-library.js';
-import {earnW,getWallet,formatW} from './wmk-economy.js';
-import {upgradeMultiplier} from './wmk-shop-inventory.js';
 import {WEAPONS, WEAPON_ORDER, BUY_CATEGORIES, SKINS} from './weapons.js';
+import {earnW} from './wmk-economy.js';
+import {upgradeMultiplier} from './wmk-shop-inventory.js';
+installCommunityWeapons(WEAPONS,WEAPON_ORDER);
+injectCommunitySkins(SKINS);
+import {gameAudio} from './audio.js';
 import * as THREE from 'three';
+import {applyPrefabVisual} from './prefab-visuals.js';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 
     // ------------------------------------------------------------
@@ -19,12 +26,100 @@ import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
       75,
       window.innerWidth / window.innerHeight,
       0.1,
-      100
+      800
     );
     camera.rotation.order = 'YXZ';
     camera.position.set(0, 1.65, 15);
     scene.add(camera);
 
+    // Uma câmera lógica FPS permanece na posição do jogador para movimento, IA e disparos.
+    // A câmera TPS é exclusivamente de visualização: não substitui as coordenadas do jogador.
+    const thirdPersonCamera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 100);
+    let thirdPersonEnabled = localStorage.getItem('wmk.cameraMode') === 'TPS';
+    let thirdPersonDistance = 3.6;
+    const thirdCamRay = new THREE.Raycaster();
+    const avatar = new THREE.Group();
+    const avatarUniform = {
+      jacket: new THREE.MeshStandardMaterial({color:0x426e60,roughness:.9}),
+      pants: new THREE.MeshStandardMaterial({color:0x242d32,roughness:.93}),
+      skin: new THREE.MeshStandardMaterial({color:0xc49e82,roughness:.9}),
+      helmet: new THREE.MeshStandardMaterial({color:0x303e3a,roughness:.8}),
+      vest: new THREE.MeshStandardMaterial({color:0x22392f,roughness:.9})
+    };
+    function avatarBox(w,h,d,mat,x,y,z) {
+      const mesh = new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);
+      mesh.position.set(x,y,z); mesh.castShadow=true; avatar.add(mesh); return mesh;
+    }
+    avatarBox(.52,.71,.29,avatarUniform.jacket,0,1.12,0);
+    avatarBox(.48,.48,.32,avatarUniform.vest,0,1.18,-.04);
+    avatarBox(.22,.70,.24,avatarUniform.pants,-.16,.4,0);
+    avatarBox(.22,.70,.24,avatarUniform.pants,.16,.4,0);
+    avatarBox(.17,.62,.22,avatarUniform.jacket,-.37,1.12,-.03);
+    avatarBox(.17,.62,.22,avatarUniform.jacket,.37,1.12,-.03);
+    // Pescoço encostado no tronco: topo do tronco = 1.475 m, base do pescoço = 1.475 m.
+    avatarBox(.20,.17,.18,avatarUniform.skin,0,1.56,0);
+    const avatarHead=new THREE.Mesh(new THREE.SphereGeometry(.225,12,10),avatarUniform.skin);
+    avatarHead.position.set(0,1.77,0);avatarHead.castShadow=true;avatar.add(avatarHead);
+    const avatarHelmet=new THREE.Mesh(new THREE.SphereGeometry(.235,12,8,0,Math.PI*2,0,Math.PI*.55),avatarUniform.helmet);
+    avatarHelmet.position.set(0,1.81,0);avatar.add(avatarHelmet);
+    scene.add(avatar);
+    const AVATAR_KEY='wmk.avatar.profile.v1';
+    const avatarPresets={
+      operator:{jacket:'#426e60',pants:'#242d32',skin:'#c49e82',helmet:'#303e3a',vest:'#22392f'},
+      urban:{jacket:'#52647d',pants:'#262b39',skin:'#c89c78',helmet:'#263148',vest:'#37414a'},
+      rescue:{jacket:'#a6763e',pants:'#3e3931',skin:'#c49e82',helmet:'#ac7630',vest:'#735b3a'}
+    };
+    function applyAvatarProfile(){
+      const preset=document.querySelector('#avatarPreset')?.value||'operator';
+      let profile=avatarPresets[preset]||avatarPresets.operator;
+      if(preset==='custom')try{const raw=JSON.parse(localStorage.getItem(AVATAR_KEY)||'null');if(raw&&typeof raw==='object')profile=raw;}catch{}
+      for(const [slot,material] of Object.entries(avatarUniform)){
+        const color=profile[slot];if(typeof color==='string'&&/^#[0-9a-f]{6}$/i.test(color))material.color.set(color);
+      }
+      try{localStorage.setItem('wmk.avatar.selected',preset);}catch{}
+    }
+    const avatarChoice=document.getElementById('avatarPreset');
+    if(avatarChoice){avatarChoice.value=localStorage.getItem('wmk.avatar.selected')||'operator';avatarChoice.addEventListener('change',applyAvatarProfile);applyAvatarProfile();}
+    window.addEventListener('focus',applyAvatarProfile);
+
+    function syncCameraModeLabel(){
+      const label=document.getElementById('cameraModeHud');
+      if(label)label.textContent=thirdPersonEnabled?'CÂMERA: 3ª PESSOA · P':'CÂMERA: 1ª PESSOA · P';
+      document.body.classList.toggle('third-person',thirdPersonEnabled);
+    }
+    function toggleCameraMode(){
+      thirdPersonEnabled=!thirdPersonEnabled;
+      try{localStorage.setItem('wmk.cameraMode',thirdPersonEnabled?'TPS':'FPS');}catch{}
+      syncCameraModeLabel();
+      if(typeof updateScope==='function')updateScope();
+    }
+    function updateThirdPersonCamera(dt){
+      const cameraActive=thirdPersonEnabled && sniperScopeLevel===0;
+      avatar.visible=cameraActive;
+      if(!cameraActive)return;
+      const player= camera.position;
+      avatar.position.set(player.x, Math.max(0,player.y-crouchHeight),player.z);
+      avatar.rotation.y=yaw;
+      const crouchAmount=Math.max(.65,Math.min(1,crouchHeight/1.65));
+      avatar.scale.y=crouchAmount;
+      // Posição sobre o ombro, atrás do jogador, usando o mesmo yaw do FPS.
+      const back=new THREE.Vector3(Math.sin(yaw),0,Math.cos(yaw));
+      const right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));
+      const lookTarget=player.clone().addScaledVector(camera.getWorldDirection(new THREE.Vector3()),26);
+      const desired=player.clone().addScaledVector(back,thirdPersonDistance).addScaledVector(right,.65);
+      desired.y+=.7;
+      // Bloqueie a câmera antes de uma parede, evitando enxergar através dela.
+      const travel=desired.clone().sub(player),len=travel.length();
+      if(len>.01){
+        thirdCamRay.set(player,travel.normalize());thirdCamRay.near=.08;thirdCamRay.far=len;
+        const obstruction=thirdCamRay.intersectObjects(blockerMeshes,false)[0];
+        if(obstruction)desired.copy(player).addScaledVector(travel,Math.max(.3,obstruction.distance-.3));
+      }
+      thirdPersonCamera.position.copy(desired);
+      thirdPersonCamera.lookAt(lookTarget);
+      thirdPersonCamera.fov=75;
+      thirdPersonCamera.updateProjectionMatrix();
+    }
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
     renderer.setSize(window.innerWidth, window.innerHeight);
@@ -32,6 +127,10 @@ import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     container.appendChild(renderer.domElement);
+    const cameraModeHud=document.createElement('div');
+    cameraModeHud.id='cameraModeHud';
+    document.querySelector('#hud')?.appendChild(cameraModeHud);
+    syncCameraModeLabel();
 
     const hemisphere = new THREE.HemisphereLight(0xe4ebec, 0x49453b, 2.1);
     scene.add(hemisphere);
@@ -88,7 +187,7 @@ import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
     ground.receiveShadow = true;
     scene.add(ground);
 
-    const grid = new THREE.GridHelper(40, 40, 0x59625a, 0x737b70);
+    let grid = new THREE.GridHelper(40, 40, 0x59625a, 0x737b70);
     grid.position.y = 0.005;
     grid.material.transparent = true;
     grid.material.opacity = 0.16;
@@ -104,24 +203,48 @@ import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
     const MAP_NAMES = {yard:'Pátio de contêineres',warehouse:'Depósito abandonado',streets:'Ruas da cidade',custom:'Mapa personalizado'};
     let activeSpawnPoints = null;
     let bombZones=[];
+    let worldHalf=20;
     function mapBox(x,y,z,w,h,d,color,solid=true){const m=addBox(x,y,z,w,h,d,color,solid);mapMeshes.push(m);return m;}
     function buildMap(id){
-      for(const m of mapMeshes){scene.remove(m);m.geometry.dispose();m.material.dispose();}
+      for(const m of mapMeshes){scene.remove(m);m.traverse(o=>{if(o.isMesh){o.geometry?.dispose();if(o.material?.map)o.material.map.dispose();o.material?.dispose();}});}
       mapMeshes.length=0;obstacles.length=0;blockerMeshes.length=0;
-      mapBox(0,2,-20,40,4,.8,0x626c69);mapBox(0,2,20,40,4,.8,0x626c69);
-      mapBox(-20,2,0,.8,4,40,0x626c69);mapBox(20,2,0,.8,4,40,0x626c69);
+      let chosenSize=40;
       if(id==='custom'){
+        try{const d=loadedCustomMap || JSON.parse(localStorage.getItem('wmk_zombie_custom_map')||'null');chosenSize=[40,80,160,320].includes(Number(d?.size))?Number(d.size):40;}catch{}
+      }
+      worldHalf=chosenSize/2;
+      ground.geometry.dispose();ground.geometry=new THREE.PlaneGeometry(chosenSize+12,chosenSize+12);
+      scene.remove(grid);grid.geometry.dispose();grid=new THREE.GridHelper(chosenSize,Math.max(10,chosenSize/2),0x59625a,0x737b70);grid.position.y=.005;grid.material.transparent=true;grid.material.opacity=.16;grid.material.depthWrite=false;scene.add(grid);
+      scene.fog.far=Math.max(68,chosenSize*.55+45);
+      const edge=worldHalf;
+      mapBox(0,2,-edge,chosenSize,4,.8,0x626c69);mapBox(0,2,edge,chosenSize,4,.8,0x626c69);
+      mapBox(-edge,2,0,.8,4,chosenSize,0x626c69);mapBox(edge,2,0,.8,4,chosenSize,0x626c69);
+      if(id==='training'){
+        // Academia original: linhas de tiro abertas, distâncias virtuais a partir de z=15.
+        const laneColors=[0x9ea7a1,0x83958d,0x6e837a,0x5b746b];
+        [5,10,20,30].forEach((meters,i)=>{
+          const z=15-meters;
+          mapBox(0,.015,z,35,.03,.07,laneColors[i],false);
+          const board=new THREE.Group();
+          const boardMesh=new THREE.Mesh(new THREE.BoxGeometry(2.9,.8,.12),new THREE.MeshBasicMaterial({color:0x203c31}));board.add(boardMesh);
+          const canvas=document.createElement('canvas');canvas.width=256;canvas.height=80;
+          const ctx=canvas.getContext('2d');ctx.fillStyle='#d8f5b7';ctx.font='bold 45px Arial';ctx.textAlign='center';ctx.fillText(meters+' m',128,54);
+          const texture=new THREE.CanvasTexture(canvas);const label=new THREE.Mesh(new THREE.PlaneGeometry(2.7,.75),new THREE.MeshBasicMaterial({map:texture,transparent:true,side:THREE.DoubleSide}));label.position.z=.065;board.add(label);
+          board.position.set(-17,1.35,z);scene.add(board);mapMeshes.push(board);
+        });
+        mapBox(0,.02,15,9,.04,3,0x395546,false);
+      } else if(id==='custom'){
         let data=null;
         try { data=loadedCustomMap || JSON.parse(localStorage.getItem('wmk_zombie_custom_map')||'null'); }catch(e){console.warn('Mapa personalizado inválido',e);}
         if(data && data.format==='wmk-zombie-map' && Array.isArray(data.objects)){
-          for(const o of data.objects.slice(0,500)){
+          for(const o of data.objects.slice(0,1200)){
             if(['spawn','player','bombA','bombB'].includes(o.type))continue;
             const n=a=>Number.isFinite(+a)?+a:0;
-            const x=n(o.x),y=n(o.y),z=n(o.z),w=Math.max(.1,Math.min(80,n(o.w)||1)),h=Math.max(.1,Math.min(30,n(o.h)||1)),d=Math.max(.1,Math.min(80,n(o.d)||1));
+            const x=n(o.x),y=n(o.y),z=n(o.z),w=Math.max(.1,Math.min(160,n(o.w)||1)),h=Math.max(.1,Math.min(80,n(o.h)||1)),d=Math.max(.1,Math.min(160,n(o.d)||1));
             const color=/^#[0-9a-f]{6}$/i.test(o.color||'')?parseInt(o.color.slice(1),16):0x69756e;
             const mesh=mapBox(x,y,z,w,h,d,color,o.solid!==false);
             mesh.rotation.y=n(o.ry);
-            if(validModel(o.model))attachMapModel(mesh,o.model);
+            if(validModel(o.model))attachMapModel(mesh,o.model);else applyPrefabVisual(mesh,o);
             if(o.solid!==false && mesh.rotation.y){
               // AABB conservadora para colisão dos obstáculos rotacionados.
               const b=obstacles[obstacles.length-1]; const c=Math.abs(Math.cos(mesh.rotation.y)),s=Math.abs(Math.sin(mesh.rotation.y));
@@ -129,7 +252,7 @@ import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
               b.minX=x-ex;b.maxX=x+ex;b.minZ=z-ez;b.maxZ=z+ez;
             }
           }
-          activeSpawnPoints=data.objects.filter(o=>o.type==='spawn' && Number.isFinite(+o.x) && Number.isFinite(+o.z)).map(o=>[+o.x,+o.z]);
+          activeSpawnPoints=data.objects.filter(o=>o.type==='spawn' && Number.isFinite(+o.x) && Number.isFinite(+o.z)).map(o=>({x:+o.x,z:+o.z,types:Array.isArray(o.zombieTypes)&&o.zombieTypes.length?o.zombieTypes:['comum'],weight:Math.max(1,Math.min(100,Number(o.spawnWeight)||1)),count:Math.max(1,Math.min(20,Number(o.spawnCount)||1)),minWave:Math.max(1,Math.min(100,Number(o.minWave)||1))}));
           bombZones=data.objects.filter(o=>o.type==='bombA'||o.type==='bombB').map(o=>({x:Number(o.x),z:Number(o.z),label:o.type==='bombA'?'A':'B'}));
           const player=data.objects.find(o=>o.type==='player');
           if(player && Number.isFinite(+player.x)&&Number.isFinite(+player.z))camera.position.set(+player.x,1.65,+player.z);
@@ -178,7 +301,7 @@ import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 
     const gun = new THREE.Group();
     let sniperScopeLevel=0;
-    function updateScope(){const allowed=selectedWeapon==='awp'||selectedWeapon==='sniper';if(!allowed)sniperScopeLevel=0;camera.fov=sniperScopeLevel===1?35:sniperScopeLevel===2?18:75;camera.updateProjectionMatrix();document.body.classList.toggle('sniper-scoped',sniperScopeLevel>0);gun.visible=sniperScopeLevel===0;const cross=document.querySelector('#scopeOverlay');if(cross)cross.hidden=!sniperScopeLevel;}
+    function updateScope(){const allowed=selectedWeapon==='awp'||selectedWeapon==='sniper';if(!allowed)sniperScopeLevel=0;camera.fov=sniperScopeLevel===1?35:sniperScopeLevel===2?18:75;camera.updateProjectionMatrix();document.body.classList.toggle('sniper-scoped',sniperScopeLevel>0);gun.visible=sniperScopeLevel===0&&!thirdPersonEnabled;const cross=document.querySelector('#scopeOverlay');if(cross)cross.hidden=!sniperScopeLevel;}
 
     camera.add(gun);
 
@@ -222,7 +345,8 @@ import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
     function rebuildGun(config){
       for (const part of [...gun.children]) {if(part===muzzle)continue;gun.remove(part);if(part.geometry)part.geometry.dispose();if(part.material&&part.material!==gunDark&&part.material!==gunMetal)part.material.dispose();}
       const skin=SKINS[skinSettings[selectedWeapon]]||SKINS.classic;
-      const material=new THREE.MeshStandardMaterial({color:skin.base||config.color,metalness:.35,roughness:skin.roughness});
+      const material=new THREE.MeshStandardMaterial({color:skin.image?0xffffff:(skin.base||config.color),metalness:skin.metalness??.35,roughness:skin.roughness});
+      if(skin.image){const tex=new THREE.TextureLoader().load(skin.image);tex.colorSpace=THREE.SRGBColorSpace;material.map=tex;}
       gunMetal.color.set(skin.metal);
       const length=config.length;
       addGunPart(new THREE.BoxGeometry(.18,.16,.30),material,0,0,-.17);
@@ -233,17 +357,21 @@ import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
       if(config.damage>100){addGunPart(new THREE.CylinderGeometry(.075,.075,.32,16),gunDark,0,.13,-.17);addGunPart(new THREE.CylinderGeometry(.04,.052,.11,12),gunMetal,0,.13,-.36);addGunPart(new THREE.BoxGeometry(.1,.04,.17),gunDark,0,.058,-.18);addGunPart(new THREE.BoxGeometry(.11,.19,.24),material,0,-.03,.16);}
       muzzle.position.z=-.29-length;
       // AWP WMK: modelo GLB original (não utiliza arquivos do CS/Steam).
-      if(selectedWeapon==='awp'){
+      if(selectedWeapon==='awp'||config.modelPath){
         const version=++awpLoadVersion;
-        glbLoader.load('./assets/models/wmk-precision-awp.glb', gltf=>{
-          if(selectedWeapon!=='awp'||version!==awpLoadVersion)return;
-          const model=gltf.scene;model.name='WMK_AWP_GLB';
+        glbLoader.load('./'+(config.modelPath||'assets/models/wmk-precision-awp.glb'), gltf=>{
+          if(version!==awpLoadVersion||currentWeapon()!==config)return;
+          const model=gltf.scene;model.name='WMK_WEAPON_GLB';
+          if(config.modelScale)model.scale.setScalar(config.modelScale);
+          if(config.modelOffset)model.position.fromArray(config.modelOffset);
+          if(config.modelRotation)model.rotation.set(...config.modelRotation);
           for(const item of [...gun.children]){
             if(item===muzzle)continue;
             if(item.material){item.material.transparent=true;item.material.opacity=0;item.material.depthWrite=false;}
           }
+          if(skin.image){for(const child of model.children){child.traverse?.(mesh=>{if(mesh.isMesh&&mesh.material){mesh.material=mesh.material.clone();mesh.material.map=new THREE.TextureLoader().load(skin.image);mesh.material.map.colorSpace=THREE.SRGBColorSpace;mesh.material.needsUpdate=true;}})}}
           gun.add(model);
-        },undefined,err=>console.warn('AWP GLB indisponível; modelo geométrico permanece visível',err));
+        },undefined,err=>console.warn('GLB indisponível; geometria de teste permanece',err));
       } else ++awpLoadVersion;
     }
 
@@ -283,15 +411,17 @@ import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
       roughness: 0.8
     });
 
-    function createBot(x, z) {
+    function createBot(x, z, zombieType='comum') {
+      const types=allZombieTypes(),spec=types[zombieType]||types.comum;
       const group = new THREE.Group();
 
       const bot = {
         group,
         parts: [],
-        health: 70 + wave * 18,
+        health: spec.health + Math.max(0,wave-1)*Math.min(12,spec.health*.08),
+        kind:spec.id, attack:spec.attack, attackInterval:spec.attackInterval, points:spec.points, headMultiplier:spec.headMultiplier,
         alive: true,
-        speed: 1.25 + Math.min(wave * .12, 1.3) + Math.random()*.35,
+        speed: spec.speed + Math.min(wave*.04,.4),
         attackTimer: 0,
         fireTimer: 0.8 + Math.random() * 1.8,
         strafe: Math.random() < 0.5 ? -1 : 1,
@@ -330,13 +460,18 @@ import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
         'botHelmet', 0, 1.96, 0);
 
       group.position.set(x, 0, z);
+      // Modelos provisórios são hitboxes; o GLB é visual opcional, com fallback.
+      group.scale.setScalar(spec.scale);
+      for(const part of bot.parts){if(part.material===enemyBodyMaterial||part.material===enemyHeadMaterial){part.material=part.material.clone();part.material.color.set(spec.color)}}
+      if(spec.model){const loader=new GLTFLoader();loader.load(spec.model,gltf=>{if(!bot.alive)return;const model=gltf.scene;const bb=new THREE.Box3().setFromObject(model);const size=bb.getSize(new THREE.Vector3()),center=bb.getCenter(new THREE.Vector3());model.position.sub(center);const wrapper=new THREE.Group();wrapper.add(model);wrapper.scale.setScalar(2.05/Math.max(size.y,.01));wrapper.position.y=1.04;group.add(wrapper);for(const part of bot.parts)part.visible=false; // Raycast continua funcionando com hitboxes invisíveis.
+      },undefined,()=>console.warn('Modelo de zumbi indisponível:',spec.model))}
       scene.add(group);
       bots.push(bot);
       return bot;
     }
 
     function isBlocked(x, z, radius = 0.38) {
-      if (x < -19.1 || x > 19.1 || z < -19.1 || z > 19.1) {
+      if (x < -worldHalf + .9 || x > worldHalf - .9 || z < -worldHalf + .9 || z > worldHalf - .9) {
         return true;
       }
 
@@ -446,6 +581,11 @@ import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
     const overlayTitle = document.querySelector('#overlayTitle');
     const overlayText = document.querySelector('#overlayText');
     const startButton = document.querySelector('#startButton');
+    const pauseOverlay=document.querySelector('#pauseOverlay');
+    const pauseHeading=document.querySelector('#pauseHeading');
+    const pauseDescription=document.querySelector('#pauseDescription');
+    const pauseModeName=document.querySelector('#pauseModeName');
+    const pauseMapName=document.querySelector('#pauseMapName');
 
     const healthText = document.querySelector('#healthText');
     const healthFill = document.querySelector('#healthFill');
@@ -475,8 +615,49 @@ import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
     let skinSettings={};
     try {const s=JSON.parse(localStorage.getItem(SKIN_STORAGE)||'{}');if(s&&typeof s==='object'&&!Array.isArray(s))skinSettings=s;}catch{}
     function currentWeapon(){return WEAPONS[selectedWeapon];}
+    // Miras por arma: preferências visuais, independentes do cálculo de spread.
+    const CROSS_KEY='wmk.crosshairs.v1';
+    let crosshairProfiles={};
+    try{const raw=JSON.parse(localStorage.getItem(CROSS_KEY)||'{}');if(raw&&typeof raw==='object'&&!Array.isArray(raw))crosshairProfiles=raw;}catch{}
+    const aimDefaults={style:'classic',color:'#f4f2de',size:20,thickness:2,dynamic:true};
+    const reticle=document.getElementById('crosshair');
+    const crossWeapon=document.getElementById('crosshairWeapon');
+    function getAim(id){const c=crosshairProfiles[id]||{};return {...aimDefaults,...c};}
+    function applyAim(){
+      const c=getAim(selectedWeapon);
+      reticle?.classList.add('wmk-reticle');
+      reticle?.classList.remove('wmk-dot','wmk-circle','wmk-hybrid');
+      if(c.style==='dot')reticle?.classList.add('wmk-dot');
+      if(c.style==='circle')reticle?.classList.add('wmk-circle');
+      if(c.style==='hybrid')reticle?.classList.add('wmk-hybrid');
+      reticle?.style.setProperty('--wmk-cross-size',Math.max(8,Math.min(45,Number(c.size)||20))+'px');
+      reticle?.style.setProperty('--wmk-cross-thick',Math.max(1,Math.min(5,Number(c.thickness)||2))+'px');
+      reticle?.style.setProperty('--wmk-cross-color',/^#[a-f0-9]{6}$/i.test(c.color)?c.color:'#f4f2de');
+    }
+    function loadAimPanel(){
+      const c=getAim(crossWeapon?.value||selectedWeapon);
+      for(const [id,value] of [['crosshairStyle',c.style],['crosshairColor',c.color],['crosshairSize',c.size],['crosshairThickness',c.thickness],['crosshairDynamic',String(c.dynamic)]]){
+        const node=document.getElementById(id);if(node)node.value=String(value);
+      }
+    }
+    if(crossWeapon){
+      for(const id of WEAPON_ORDER)if(WEAPONS[id])crossWeapon.add(new Option(WEAPONS[id].name,id));
+      crossWeapon.value=selectedWeapon;
+      crossWeapon.addEventListener('change',loadAimPanel);
+      for(const id of ['crosshairStyle','crosshairColor','crosshairSize','crosshairThickness','crosshairDynamic']){
+        document.getElementById(id)?.addEventListener('input',()=>{
+          const weaponId=crossWeapon.value;
+          crosshairProfiles[weaponId]={style:document.getElementById('crosshairStyle').value,color:document.getElementById('crosshairColor').value,size:Number(document.getElementById('crosshairSize').value),thickness:Number(document.getElementById('crosshairThickness').value),dynamic:document.getElementById('crosshairDynamic').value==='true'};
+          try{localStorage.setItem(CROSS_KEY,JSON.stringify(crosshairProfiles));}catch{}
+          if(weaponId===selectedWeapon)applyAim();
+        });
+      }
+      document.getElementById('crosshairReset')?.addEventListener('click',()=>{delete crosshairProfiles[crossWeapon.value];try{localStorage.setItem(CROSS_KEY,JSON.stringify(crosshairProfiles));}catch{}loadAimPanel();applyAim()});
+      loadAimPanel();applyAim();
+    }
+
     function applySkin(id,skinId){
-      if(!WEAPONS[id]||!SKINS[skinId])return;
+      if(!WEAPONS[id]||!SKINS[skinId]||(SKINS[skinId].forWeapon&&SKINS[skinId].forWeapon!==id))return;
       skinSettings[id]=skinId;
       try{localStorage.setItem(SKIN_STORAGE,JSON.stringify(skinSettings));}catch(e){console.warn('Preferência de skin não persistida',e);}
       if(id===selectedWeapon)rebuildGun(currentWeapon());
@@ -487,7 +668,7 @@ import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
       if(!WEAPONS[id])return;
       // Somente as armas equipadas podem ser acessadas pelas teclas 1, 2 e 3.
       if(!Object.values(loadout).includes(id))return;
-      saveAmmo();selectedWeapon=id;reloading=false;reloadTimer=0;shotCooldown=0;shootHeld=false;
+      saveAmmo();selectedWeapon=id;reloading=false;reloadTimer=0;shotCooldown=0;shootHeld=false;applyAim();
       const state=inventory[id];ammo=state.ammo;reserveAmmo=state.reserve;
       rebuildGun(currentWeapon());updateScope();updateHUD();
       for(const el of weaponBar.children)el.classList.toggle('active',el.dataset.weapon===id);
@@ -543,8 +724,9 @@ import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
       const area=document.querySelector('#skinArea'),grid=document.querySelector('#skinChoices');
       grid.replaceChildren();area.hidden=false;
       for(const [key,skin] of Object.entries(SKINS)){
+        if(skin.forWeapon&&skin.forWeapon!==id)continue;
         const b=document.createElement('button');b.type='button';b.className='skin-swatch';
-        const swatch=document.createElement('span');swatch.className='skin-dot';swatch.style.backgroundColor=skin.base||'#737777';
+        const swatch=document.createElement('span');swatch.className='skin-dot';swatch.style.backgroundColor=skin.base||'#737777';if(skin.image)swatch.style.backgroundImage='url('+skin.image+')';
         b.append(swatch,document.createTextNode(skin.name+(skinSettings[id]===key?' ✓':'')));
         b.onclick=()=>{applySkin(id,key);renderSkinChoices(id);};grid.append(b);
       }
@@ -560,13 +742,13 @@ import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
     }
     function openWeaponPanel(){
       if(gameState!=='playing')return;
-      weaponPanelOpen=true;buyCategory=null;shootHeld=false;buildWeaponUI();
+      weaponPanelOpen=true;buyCategory=null;shootHeld=false;gameState='paused';buildWeaponUI();
       weaponPanel.classList.remove('hidden');
       if(document.pointerLockElement===renderer.domElement)document.exitPointerLock();
     }
     function closeWeaponPanel(){
       weaponPanelOpen=false;weaponPanel.classList.add('hidden');
-      if(gameState==='paused')startOrResume();
+      if(gameState==='paused')resumePausedGame();
     }
     document.querySelector('#closeWeapons').addEventListener('click',closeWeaponPanel);
     document.querySelector('#buyBack').addEventListener('click',()=>{buyCategory=null;buildWeaponUI();});
@@ -631,6 +813,66 @@ import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
       overlay.classList.remove('hidden');
     }
 
+    const gameEndOverlay=document.querySelector('#gameEndOverlay');
+    const modeNames={survival:'Sobrevivência',training:'Academia FPS',bomb:'Operação Bomba'};
+    function showPauseMenu(){
+      if(gameState!=='playing'&&gameState!=='paused')return;
+      gameState='paused';shootHeld=false;
+      for(const key in keys)delete keys[key];
+      document.body.classList.remove('in-game');
+      const mode=modeNames[currentMode]||currentMode;
+      pauseHeading.textContent=mode.toUpperCase()+' · PAUSADO';
+      pauseDescription.textContent=currentMode==='training'?'Seus alvos, disparos e pontuação foram preservados.':currentMode==='bomb'?'A rodada, os bots e o cronômetro estão congelados.':'Sua onda de zumbis foi preservada.';
+      pauseModeName.textContent=mode;
+      pauseMapName.textContent=currentMode==='training'?'Academia de mira':document.querySelector('#mapName').textContent;
+      overlay.classList.add('hidden');pauseOverlay.classList.remove('hidden');
+    }
+    function returnToMainMenu(){
+      if(gameState==='playing'||gameState==='paused'){
+        shootHeld=false;gameState='menu';
+        if(document.pointerLockElement===renderer.domElement)document.exitPointerLock();
+        clearExtras();clearGrenades();clearWeaponProjectiles();clearEffects();
+        for(const bot of bots){scene.remove(bot.group);bot.alive=false;}
+        bots.length=0;respawns.length=0;trainingPendingRespawns.length=0;trainingSession++;
+        document.body.classList.remove('in-game');
+      }
+      pauseOverlay.classList.add('hidden');
+      gameEndOverlay.classList.add('hidden');
+      document.getElementById('trainingReport').classList.add('hidden');
+      overlay.classList.remove('hidden');
+      overlayTitle.textContent='WMK ZOMBIE ARENA';
+      refreshTrainingOptions();
+      startButton.textContent=modeButtonLabels[modeSelect.value]||modeButtonLabels.survival;
+    }
+    function resumePausedGame(){
+      if(gameState!=='paused')return;
+      gameAudio.unlock();
+      try{
+        const request=renderer.domElement.requestPointerLock();
+        if(request?.catch)request.catch(()=>{pauseDescription.textContent='Não foi possível retomar. Clique em Continuar e autorize o mouse.';});
+      }catch(e){pauseDescription.textContent='Falha ao capturar mouse: '+e.message;}
+    }
+    document.querySelector('#resumeGame').addEventListener('click',resumePausedGame);
+    document.querySelector('#returnMainMenu').addEventListener('click',returnToMainMenu);
+    document.getElementById('trainingRestart').addEventListener('click',()=>{
+      if(currentMode!=='training'||gameState!=='ended')return;
+      document.getElementById('trainingReport').classList.add('hidden');
+      // resetGame() preserves configured drill and distance, and starts a NEW session.
+      resetGame();showPauseMenu();resumePausedGame();
+    });
+    document.getElementById('trainingToMenu').addEventListener('click',()=>{
+      returnToMainMenu();
+    });
+    document.getElementById('gameEndMenu').addEventListener('click',returnToMainMenu);
+    document.getElementById('gameEndRestart').addEventListener('click',()=>{
+      if(gameState!=='ended')return;
+      // Reiniciar preserva o modo atual da partida, sem reutilizar seleções mudadas durante a sessão.
+      modeSelect.value=currentMode;
+      updateModeCards();refreshTrainingOptions();
+      beginGame();
+    });
+
+
     function showToast(text) {
       toast.textContent = text;
       toast.classList.add('visible');
@@ -641,43 +883,213 @@ import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
     let currentMode='survival', trainingHits=0, bombTime=120, planted=false, plantTime=35, plantProgress=0;
     let trainingTargets=[], teammates=[], siteMeshes=[];
     function clearExtras(){
-      for(const o of [...trainingTargets,...teammates,...siteMeshes]){
-        scene.remove(o);o.traverse(m=>{if(m.isMesh){m.geometry.dispose();m.material.dispose();}});
+      for(const value of [...trainingTargets,...teammates,...siteMeshes]){
+        const o=value.group||value;scene.remove(o);o.traverse(m=>{if(m.isMesh){m.geometry.dispose();m.material.dispose();}});
       }
       trainingTargets=[];teammates=[];siteMeshes=[];
     }
-    function scheduleTargetRespawn(bot){
-      // Alvos de treino reaparecem sem criar ondas ou agredir o jogador.
-      setTimeout(()=>{if(gameState==='playing'&&currentMode==='training'){
-        const [x,z]=[Math.random()*20-10,-5-Math.random()*10];
-        const target=createBot(x,z);target.health=100;waveRemaining++;updateHUD();
-      }},850);
+    const trainingDistanceSelect=document.querySelector('#trainingDistance');
+    const trainingDrillSelect=document.querySelector('#trainingDrill');
+    const trainingOptions=document.querySelector('#wmkTrainingOptions');
+    const availableDistances=[5,10,20,30];
+    let trainingSession=0, trainingNextSlot=0, trainingHeadshots=0;
+    const modeButtonLabels={survival:'INICIAR SOBREVIVÊNCIA',training:'INICIAR TREINAMENTO',bomb:'INICIAR OPERAÇÃO BOMBA'};
+    const trainingModeStatus=document.querySelector('#trainingModeStatus');
+    const trainingStats=document.querySelector('#trainingStats');
+    let trainingSessionShots=0, trainingSessionHits=0, trainingSessionKills=0;
+    let trainingPendingRespawns=[];
+    function trainingLabel(){return trainingDrillSelect.selectedOptions[0]?.textContent||'Precisão';}
+    function refreshTrainingOptions(){
+      const training=modeSelect.value==='training';
+      if(trainingOptions)trainingOptions.hidden=!training;
+      document.body.classList.toggle('selecting-training',training);
+      if(gameState==='menu'||gameState==='ended'){
+        startButton.textContent=modeButtonLabels[modeSelect.value]||modeButtonLabels.survival;
+        overlayText.textContent=training
+          ?'Academia FPS: configure a distância e o exercício, clique em Iniciar treinamento e atire nos alvos.'
+          : modeSelect.value==='bomb'
+            ?'Operação Bomba offline: conquiste uma das zonas A/B.'
+            :'Sobreviva às ondas de zumbis. Escolha o mapa para começar.';
+      }
+      if(trainingModeStatus)trainingModeStatus.textContent=training
+        ?'Treinamento: '+trainingLabel()+' · '+(trainingDistanceSelect.value==='mixed'?'5, 10, 20 e 30 m':trainingDistanceSelect.value+' m')
+        :'Selecione Academia de mira para configurar exercícios.';
+    }
+    const modeCards=[...document.querySelectorAll('[data-game-mode]')];
+    function updateModeCards(){
+      for(const card of modeCards){
+        const active=card.dataset.gameMode===modeSelect.value;
+        card.classList.toggle('active',active);
+        card.setAttribute('aria-pressed',String(active));
+      }
+      document.querySelectorAll('[data-mode-config]').forEach(panel=>{
+        panel.hidden=panel.dataset.modeConfig!==modeSelect.value;
+      });
+    }
+    for(const card of modeCards){card.addEventListener('click',()=>{
+      if(gameState!=='menu')return;
+      modeSelect.value=card.dataset.gameMode;
+      modeSelect.dispatchEvent(new Event('change',{bubbles:true}));
+    });}
+    modeSelect.addEventListener('change',()=>{
+      updateModeCards();
+      refreshTrainingOptions();
+    });
+    trainingDistanceSelect.addEventListener('change',refreshTrainingOptions);
+    trainingDrillSelect.addEventListener('change',refreshTrainingOptions);
+    refreshTrainingOptions();
+    updateModeCards();
+    function trainingDistance(){
+      // Sempre retornar uma LISTA, inclusive quando o usuário escolhe distâncias mistas.
+      const choice=trainingDistanceSelect.value;
+      if(choice==='mixed')return [...availableDistances];
+      const meters=Number(choice);
+      return availableDistances.includes(meters)?[meters]:[10];
+    }
+    function makeTrainingTarget(distance,offset=0){
+      const z=15-distance,x=Math.max(-13,Math.min(13,offset));
+      const bot=createBot(x,z,'comum');bot.health=100;bot.speed=0;bot.attackTimer=99999;
+      bot.training={distance,originX:x,elapsed:Math.random()*Math.PI*2,exercise:trainingDrillSelect.value};
+      waveRemaining++;trainingTotalTargets++;(trainingDistanceResults[distance]??={total:0,killed:0}).total++;return bot;
+    }
+    // Treino finito: cada alvo nasce somente uma vez; sem respawn.
+    let trainingTotalTargets=0;
+    let trainingDistanceResults={};
+    function startTrainingReport(){
+      if(currentMode!=='training'||gameState!=='playing')return;
+      gameState='ended';shootHeld=false;
+      document.body.classList.remove('in-game');
+      pauseOverlay.classList.add('hidden');overlay.classList.add('hidden');
+      const accuracy=trainingSessionShots?100*trainingSessionHits/trainingSessionShots:0;
+      const duration=elapsedTime;
+      const mins=String(Math.floor(duration/60)).padStart(2,'0');
+      const secs=String(Math.floor(duration%60)).padStart(2,'0');
+      const accuracyLabel=accuracy.toFixed(1).replace('.',',')+'%';
+      const headRate=trainingSessionKills?100*trainingHeadshots/trainingSessionKills:0;
+      const rate=duration>0?trainingSessionKills*60/duration:0;
+      const values={
+        trainingReportExercise:trainingLabel(),trainingReportTargets:String(trainingSessionKills)+' / '+String(trainingTotalTargets),
+        trainingReportShots:String(trainingSessionShots),trainingReportHits:String(trainingSessionHits),
+        trainingReportAccuracy:accuracyLabel,trainingReportHeadshots:String(trainingHeadshots)+' ('+headRate.toFixed(1).replace('.',',')+'%)',
+        trainingReportMisses:String(Math.max(0,trainingSessionShots-trainingSessionHits)),trainingReportTime:mins+':'+secs,
+        trainingReportPace:rate.toFixed(1).replace('.',',')+' alvos/min'
+      };
+      for(const [id,value] of Object.entries(values))document.getElementById(id).textContent=value;
+      const distanceElement=document.getElementById('trainingReportDistances');distanceElement.replaceChildren();
+      for(const d of [...availableDistances]){
+        const entry=trainingDistanceResults[d];if(!entry||!entry.total)continue;
+        const line=document.createElement('div');line.textContent=d+' m: '+entry.killed+'/'+entry.total+' alvos eliminados';
+        distanceElement.append(line);
+      }
+      document.getElementById('trainingReport').classList.remove('hidden');
+      if(document.pointerLockElement===renderer.domElement)document.exitPointerLock();
     }
     function spawnTraining(){
-      waveRemaining=0;
-      for(let i=0;i<7;i++){const b=createBot(-12+i*4,-8-Math.random()*7);b.speed=0;b.attackTimer=9999;waveRemaining++;}
-      showToast('TREINO: ACERTE OS ALVOS — SEM LIMITE DE TEMPO');
+      trainingSession++;trainingPendingRespawns.length=0;trainingNextSlot=0;trainingHits=0;trainingHeadshots=0;trainingSessionShots=0;trainingSessionHits=0;trainingSessionKills=0;trainingTotalTargets=0;trainingDistanceResults={};waveRemaining=0;
+      const distances=trainingDistance();
+      if(!Array.isArray(distances)||!distances.length){
+        throw new Error('Distâncias do treino inválidas: confira o seletor da academia.');
+      }
+      for(const d of distances){
+        const positions=distances.length===1?[-9,-5,-1,3,7,11]:[-5,0,5];
+        for(const x of positions)makeTrainingTarget(d,x);
+      }
+      showToast('ACADEMIA: '+trainingDrillSelect.selectedOptions[0].textContent.toUpperCase());
+    }
+    function updateTrainingTargets(dt){
+      if(currentMode!=='training')return;
+      const exercise=trainingDrillSelect.value;
+      if(exercise==='moving')for(const bot of bots){
+        if(!bot.alive||!bot.training)continue;
+        bot.training.elapsed+=dt;
+        bot.group.position.x=bot.training.originX+Math.sin(bot.training.elapsed*1.6)*1.65;
+      }
+      document.querySelector('#waveText').textContent='TREINO · '+(trainingDistanceSelect.value==='mixed'?'5–30m':trainingDistanceSelect.value+'m');
+      document.querySelector('#aliveText').textContent=`${waveRemaining} ALVOS · ${trainingHeadshots} HS`;
+      if(trainingStats){
+        const accuracy=trainingSessionShots?Math.round(100*trainingSessionHits/trainingSessionShots):0;
+        trainingStats.textContent=`${trainingLabel()} · ${trainingSessionKills} alvos · ${trainingHeadshots} headshots · ${accuracy}% de acerto`;
+      }
     }
     function siteMarker(x,z,label){
       const m=new THREE.Mesh(new THREE.CylinderGeometry(2,2,.07,32),new THREE.MeshBasicMaterial({color:label==='A'?0xffd060:0x79d2fa,transparent:true,opacity:.42,depthWrite:false}));
       m.position.set(x,.04,z);scene.add(m);siteMeshes.push(m);
       return m;
     }
+    // Configuração de inimigos da rodada: defensor tático ou Zombie Studio.
+    // É lida somente ao iniciar uma nova partida, nunca ao continuar após Esc.
+    function getBombEnemyChoices(){
+      const value=document.querySelector('#bombEnemyType')?.value||'tactical';
+      const types=allZombieTypes();
+      if(value==='tactical')return {tactical:true,ids:[]};
+      if(value==='mixed')return {tactical:false,ids:Object.keys(types)};
+      return {tactical:false,ids:types[value]?[value]:['comum']};
+    }
     function spawnBombRound(){
       bombTime=120;planted=false;plantTime=35;plantProgress=0;
-      waveRemaining=5;
-      const spawns=(activeSpawnPoints?.length?activeSpawnPoints:[[-14,-13],[0,-14],[14,-13]]);
-      for(let i=0;i<5;i++){
-        const [x,z]=spawns[i%spawns.length];const b=createBot(x+(i%2)*1.2,z+Math.floor(i/2)*1.2);b.speed=1.7;
+      const enemyCount=Number(document.querySelector('#bombEnemies')?.value)||5;
+      const allyCount=Number(document.querySelector('#bombAllies')?.value)||5;
+      const enemyChoice=getBombEnemyChoices();
+      waveRemaining=enemyCount;
+      const spawns=(activeSpawnPoints?.length?activeSpawnPoints:[{x:-14,z:-13,types:['comum']},{x:0,z:-14,types:['comum']},{x:14,z:-13,types:['comum']}]);
+      for(let i=0;i<enemyCount;i++){
+        const {x,z,types=['comum']}=spawns[i%spawns.length];
+        // Defensores táticos podem continuar usando os spawns do mapa.
+        // No modo zumbi, respeitamos a escolha explícita feita antes da partida.
+        const type=enemyChoice.tactical?'comum':enemyChoice.ids[i%enemyChoice.ids.length];
+        const b=createBot(x+(i%2)*1.2,z+Math.floor(i/2)*1.2,type);
+        b.bombDefender=enemyChoice.tactical;
+        if(enemyChoice.tactical){
+          b.speed=1.7;b.health=110;b.attack=9;b.attackInterval=.8;b.fireTimer=.25+(i%3)*.25;
+          for(const part of b.parts){if(part.material?.isMeshStandardMaterial){part.material=part.material.clone();part.material.color.set(part.name==='botHead'?0xaab9c1:0x9b6256);}}
+        }
       }
-      // Quatro aliados representados por unidades de suporte automáticas simplificadas.
-      for(let i=0;i<4;i++){
-        const g=new THREE.Group();const m=new THREE.Mesh(new THREE.BoxGeometry(.65,1.8,.65),new THREE.MeshStandardMaterial({color:0x448fbd}));m.position.y=.9;g.add(m);g.position.set(-3+i*2,0,10);scene.add(g);teammates.push(g);
+      // Esquadrão offline: cada aliado tem vida, posição, arma simulada e alvo próprio.
+      for(let i=0;i<allyCount;i++){
+        const g=new THREE.Group();
+        const uniform=new THREE.MeshStandardMaterial({color:0x3c81a0,roughness:.8});
+        const torso=new THREE.Mesh(new THREE.BoxGeometry(.65,.95,.45),uniform);torso.position.y=1.2;g.add(torso);
+        const head=new THREE.Mesh(new THREE.SphereGeometry(.25,10,10),new THREE.MeshStandardMaterial({color:0xb2bfae}));head.position.y=1.92;g.add(head);
+        const legs=new THREE.Mesh(new THREE.BoxGeometry(.4,.8,.38),uniform);legs.position.y=.42;g.add(legs);
+        g.position.set(-Math.min(8,allyCount)+i*2.1,0,11+Math.floor(i/4)*1.4);
+        scene.add(g);teammates.push({group:g,health:95,fireCooldown:.5+i*.27,alive:true,kills:0});
       }
       const sites=bombZones.length?bombZones:[{x:-12,z:-9,label:'A'},{x:12,z:-9,label:'B'}];
       sites.forEach(s=>siteMarker(s.x,s.z,s.label));
-      showToast('5v5 OFFLINE EXPERIMENTAL · PLANTE COM E EM A OU B');
+      showToast(`VOCÊ + ${allyCount} ALIADOS VS ${enemyCount} DEFENSORES · PLANTE COM E`);
     }
+    // Lista atualizada com tipos personalizados do Zombie Studio (localStorage).
+    function refreshBombEnemySelector(){
+      const select=document.querySelector('#bombEnemyType');if(!select)return;
+      const current=select.value||'tactical';
+      const official=document.querySelector('#bombBuiltInZombieOptions');
+      const custom=document.querySelector('#bombCustomZombieOptions');
+      if(!official||!custom)return;
+      official.replaceChildren();custom.replaceChildren();
+      const types=allZombieTypes();
+      for(const z of Object.values(types)){
+        const label=`${z.name} · ${z.health} HP · ${z.attack} dano · ${z.speed} velocidade`;
+        const option=new Option(label,z.id);
+        (Object.hasOwn(BUILTIN_ZOMBIES,z.id)?official:custom).append(option);
+      }
+      if([...select.options].some(o=>o.value===current))select.value=current;
+    }
+    refreshBombEnemySelector();
+    window.addEventListener('focus',()=>{refreshBombEnemySelector();updateBombTeamSummary()});
+    document.addEventListener('visibilitychange',()=>{if(!document.hidden){refreshBombEnemySelector();updateBombTeamSummary()}});
+    // Contagens e tipo definidos antes da rodada. Pausar/continuar não altera os bots existentes.
+    function updateBombTeamSummary(){
+      const allies=Number(document.querySelector('#bombAllies')?.value)||5;
+      const enemies=Number(document.querySelector('#bombEnemies')?.value)||5;
+      const summary=document.querySelector('#bombTeamsSummary');
+      const selector=document.querySelector('#bombEnemyType');
+      const label=selector?.selectedOptions?.[0]?.textContent||'Defensor tático';
+      if(summary)summary.textContent=`Você + ${allies} aliados contra ${enemies} inimigos (${label}). Total: ${allies+enemies+1} personagens (offline).`;
+      const hint=document.querySelector('#bombEnemyTypeHint');
+      if(hint)hint.textContent=selector?.value==='tactical'?'Defensores táticos usam disparos simulados à distância.':selector?.value==='mixed'?'Cada inimigo usa um tipo diferente, alternando entre os zumbis oficiais e seus zumbis criados no navegador.':'Os inimigos desta partida usam vida, dano, velocidade, escala e modelo do tipo escolhido no Zombie Studio.';
+    }
+    for(const id of ['bombAllies','bombEnemies','bombEnemyType'])document.getElementById(id)?.addEventListener('change',updateBombTeamSummary);
+    updateBombTeamSummary();
     function setupMode(){
       clearExtras();currentMode=modeSelect.value;
       document.querySelector('#modeHud').textContent=currentMode==='training'?'ACADEMIA DE MIRA':currentMode==='bomb'?'OPERAÇÃO BOMBA':'SOBREVIVÊNCIA';
@@ -692,16 +1104,31 @@ import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
       if(!planted && close && keys.KeyE){plantProgress+=dt;if(plantProgress>=2.5){planted=true;showToast('BOMBA ARMADA — PROTEJA A ZONA!');}}else if(!planted)plantProgress=0;
       if(planted){plantTime-=dt;if(plantTime<=0){finishGame(true);return;}}
       if(!planted&&bombTime<=0){finishGame(false);return;}
-      // Aliados atiram em alvos próximos; simulação offline, sem rede.
+      // Bots aliados reagem aos inimigos, aproximam-se e disparam com cadência própria.
       for(const ally of teammates){
-        const target=bots.find(b=>b.alive&&Math.hypot(b.group.position.x-ally.position.x,b.group.position.z-ally.position.z)<13);
-        if(target && Math.random()<dt*.36){target.health-=25;if(target.health<=0)eliminateBot(target);}
+        if(!ally.alive)continue;
+        const pos=ally.group.position;
+        const target=bots.filter(b=>b.alive).sort((a,b)=>a.group.position.distanceToSquared(pos)-b.group.position.distanceToSquared(pos))[0];
+        if(!target)continue;
+        const enemy=target.group.position,dx=enemy.x-pos.x,dz=enemy.z-pos.z,dist=Math.hypot(dx,dz)||1;
+        ally.group.rotation.y=Math.atan2(dx,dz);
+        if(dist>8){const step=Math.min(1.55*dt,dist-8);if(!isBlocked(pos.x+dx/dist*step,pos.z,.4))pos.x+=dx/dist*step;if(!isBlocked(pos.x,pos.z+dz/dist*step,.4))pos.z+=dz/dist*step;}
+        ally.fireCooldown-=dt;
+        if(dist<17&&ally.fireCooldown<=0){
+          ally.fireCooldown=.55+Math.random()*.4;
+          if(Math.random()<.72){target.health-=20;if(target.health<=0){ally.kills++;eliminateBot(target);}}
+          const muzzle=pos.clone().add(new THREE.Vector3(0,1.35,0));const aim=enemy.clone().add(new THREE.Vector3(0,1.3,0));addTracer(muzzle,aim,0x67baf3);
+        }
       }
+      document.querySelector('#aliveText').textContent=`${teammates.filter(a=>a.alive).length+1} ATACANTES · ${bots.filter(b=>b.alive).length} DEFENSORES`;
       document.querySelector('#waveText').textContent=planted?'BOMBA: '+Math.ceil(plantTime)+'s':'RODADA: '+Math.ceil(Math.max(0,bombTime))+'s';
-      document.querySelector('#aliveText').textContent=(5-Math.max(0,5-waveRemaining))+' DEFENSORES';
+
     }
     function resetGame() {
+      gameEndOverlay.classList.add('hidden');
+      document.getElementById('trainingReport').classList.add('hidden');
       clearExtras();
+      clearGrenades();clearWeaponProjectiles();grenades={he:2,smoke:2};updateGrenadeHud();
       for (const bot of bots) {
         scene.remove(bot.group);
       }
@@ -713,6 +1140,7 @@ import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
       inventory=Object.fromEntries(WEAPON_ORDER.map(id=>[id,{ammo:WEAPONS[id].magazine,reserve:WEAPONS[id].reserve}]));
       ammo=WEAPONS.rifle.magazine;reserveAmmo=WEAPONS.rifle.reserve;
       loadout={primary:'rifle',secondary:'pistol',melee:'knife'};
+      trainingSession++;trainingPendingRespawns.length=0;
       wave=1;waveRemaining=0;waveCooldown=0;score=0;
       kills=0;
       elapsedTime = 0;
@@ -747,7 +1175,7 @@ import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
       toast.classList.remove('visible');
       damageFlash.style.opacity = '0';
 
-      buildMap(mapSelect.value);
+      buildMap(modeSelect.value==='training'?'training':mapSelect.value);
       selectWeapon('rifle');
       setupMode();
 
@@ -758,60 +1186,59 @@ import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 
     function finishGame(won) {
       if (gameState === 'ended') return;
-
       gameState = 'ended';
-      shootHeld = false;
+      shootHeld=false;
+      for(const key in keys)delete keys[key];
       document.body.classList.remove('in-game');
-
-      if (won) {
-        setOverlay(
-          'MISSÃO CUMPRIDA',
-          currentMode==='bomb'?'Vitória da equipe atacante!':currentMode==='training'?'Treinamento concluído!':'Missão concluída.',
-          'Jogar novamente'
-        );
-      } else {
-        setOverlay(
-          'VOCÊ FOI ELIMINADO',
-          'Tente outra vez e use as coberturas da arena.',
-          'Jogar novamente'
-        );
-      }
-
-      if (document.pointerLockElement === renderer.domElement) {
-        document.exitPointerLock();
-      }
+      pauseOverlay.classList.add('hidden');overlay.classList.add('hidden');
+      document.getElementById('trainingReport').classList.add('hidden');
+      document.getElementById('gameEndHeading').textContent=won?'MISSÃO CUMPRIDA':'FIM DE PARTIDA';
+      document.getElementById('gameEndDescription').textContent=won
+        ?'Você venceu esta partida. Pode jogar novamente ou voltar ao menu principal.'
+        :'A partida terminou. Revise sua estratégia e tente novamente.';
+      document.getElementById('gameEndMode').textContent=modeNames[currentMode]||currentMode;
+      document.getElementById('gameEndStats').textContent=`${kills} eliminações · ${shotsFired} disparos · ${shotsFired?Math.round(100*shotsHit/shotsFired):0}% precisão`;
+      gameEndOverlay.classList.remove('hidden');
+      if(document.pointerLockElement===renderer.domElement)document.exitPointerLock();
     }
+
 
     function damagePlayer(amount) {
-      health = Math.max(0, health - amount);
-      damageFlashAlpha = Math.min(0.58, damageFlashAlpha + 0.28);
+      health=Math.max(0,health-Math.max(0,Number(amount)||0));
+      damageFlashAlpha=Math.min(.6,damageFlashAlpha+.25);
       updateHUD();
-
-      if (health <= 0) {
-        finishGame(false);
+      if(health<=0)finishGame(false);
+    }
+    function eliminateBot(bot) {
+      if(!bot||!bot.alive)return;
+      bot.alive=false;scene.remove(bot.group);
+      kills++;score+=100;waveRemaining=Math.max(0,waveRemaining-1);
+      const reward=earnW(10,'Eliminação ('+currentMode+')');
+      if(!reward.ok)console.warn('W$:',reward.error);
+      if(currentMode==='training'){
+        trainingSessionKills++;
+        const d=bot.training?.distance;
+        if(d!==undefined && trainingDistanceResults[d])trainingDistanceResults[d].killed++;
+        if(waveRemaining===0)startTrainingReport();
       }
+      if(currentMode==='survival'&&waveRemaining===0){waveCooldown=3.8;showToast('ONDA '+wave+' CONCLUÍDA · +10 W$ por inimigo');}
+      if(currentMode==='bomb'&&waveRemaining===0)finishGame(true);
+      updateHUD();
+    }
+    function chooseSpawnPoint() {
+      const sources=activeSpawnPoints?.length?activeSpawnPoints:spawnPoints;
+      const possible=sources.map(s=>Array.isArray(s)?{x:s[0],z:s[1],types:['comum']}:s).filter(s=>!isBlocked(s.x,s.z,.5));
+      const viable=possible.filter(s=>Math.hypot(s.x-camera.position.x,s.z-camera.position.z)>10);
+      return (viable.length?viable:possible)[Math.floor(Math.random()*(viable.length||possible.length))]||{x:-14,z:-14,types:['comum']};
     }
 
-    function eliminateBot(bot){
-      if(!bot.alive)return;
-      bot.alive=false;scene.remove(bot.group);kills++;score+=100;waveRemaining--;
-       const earned=earnW(10,'Eliminação de inimigo ('+currentMode+')');if(!earned.ok)console.warn('WMK Economy:',earned.error);
-      showToast('INIMIGO ELIMINADO +100 pontos / +10 W$');updateHUD();
-      if(currentMode==='survival'&&waveRemaining===0){waveCooldown=3.8;showToast(`ONDA ${wave} CONCLUÍDA`);}
-      if(currentMode==='training'){scheduleTargetRespawn(bot);}
-      if(currentMode==='bomb' && waveRemaining<=0)finishGame(true);
-    }
-    function chooseSpawnPoint(){
-      const candidates=(activeSpawnPoints?.length?activeSpawnPoints:spawnPoints).filter(([x,z])=>!isBlocked(x,z,.5));
-      const viable=candidates.filter(([x,z])=>Math.hypot(x-camera.position.x,z-camera.position.z)>10);
-      const pool=viable.length?viable:candidates;
-      return pool[Math.floor(Math.random()*pool.length)] || [-14,-14];
-    }
     function startWave(){
       waveRemaining=Math.min(4+wave*2,28);
       for(let i=0;i<waveRemaining;i++){
-        const [x,z]=chooseSpawnPoint();
-        const bot=createBot(x+(Math.random()-.5)*1.2,z+(Math.random()-.5)*1.2);
+        const spawn=chooseSpawnPoint();const ids=(spawn.types||['comum']).filter(id=>allZombieTypes()[id]);
+        const type=ids.length?ids[Math.floor(Math.random()*ids.length)]:'comum';
+        const x=spawn.x,z=spawn.z;
+        const bot=createBot(x+(Math.random()-.5)*1.2,z+(Math.random()-.5)*1.2,type);
         if(isBlocked(bot.group.position.x,bot.group.position.z,.4))bot.group.position.set(x,0,z);
       }
       updateHUD();showToast(`ONDA ${wave} · SOBREVIVA!`);
@@ -907,17 +1334,53 @@ import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
       }
     }
 
+    // Entidades de projéteis de fantasia; colisão calculada no cliente para o modo offline.
+    const weaponProjectiles=[];
+    function clearWeaponProjectiles(){for(const p of weaponProjectiles){scene.remove(p.mesh);p.mesh.geometry.dispose();p.mesh.material.dispose()}weaponProjectiles.length=0}
+    function launchWeaponProjectile(weapon){
+      const direction=new THREE.Vector3();camera.getWorldDirection(direction);
+      const mesh=new THREE.Mesh(new THREE.SphereGeometry(.16,10,8),new THREE.MeshBasicMaterial({color:0xff9e4b}));
+      mesh.position.copy(camera.position).addScaledVector(direction,.72);scene.add(mesh);
+      weaponProjectiles.push({mesh,dir:direction,speed:weapon.projectileSpeed||22,range:0,weapon});
+      showToast('PROJÉTIL LANÇADO · '+weapon.name.toUpperCase());
+    }
+    function explodeWeaponProjectile(p){
+      gameAudio.explosion();const origin=p.mesh.position.clone();
+      const range=p.weapon.blastRadius||4;
+      for(const bot of [...bots]){
+        if(!bot.alive)continue;
+        const pos=bot.group.position.clone().add(new THREE.Vector3(0,1,0));
+        const d=pos.distanceTo(origin);
+        if(d<range){bot.health-=p.weapon.damage*Math.max(0,1-d/range);if(bot.health<=0)eliminateBot(bot)}
+      }
+      const pulse=new THREE.Mesh(new THREE.SphereGeometry(1,12,10),new THREE.MeshBasicMaterial({color:0xffab52,transparent:true,opacity:.45,depthWrite:false}));
+      pulse.position.copy(origin);pulse.scale.setScalar(range);scene.add(pulse);
+      effects.push({line:pulse,life:.18,duration:.18});
+    }
+    function updateWeaponProjectiles(dt){
+      for(let i=weaponProjectiles.length-1;i>=0;i--){const p=weaponProjectiles[i],travel=p.speed*dt;
+        raycaster.set(p.mesh.position,p.dir);raycaster.near=0;raycaster.far=travel+.2;
+        const objects=[...blockerMeshes,...bots.filter(b=>b.alive).flatMap(b=>b.parts)];
+        const hits=raycaster.intersectObjects(objects,false);
+        if(hits.length)p.mesh.position.copy(hits[0].point);
+        else p.mesh.position.addScaledVector(p.dir,travel);
+        p.range+=travel;
+        if(hits.length||p.range>=70||p.mesh.position.y<=0.2){explodeWeaponProjectile(p);scene.remove(p.mesh);p.mesh.geometry.dispose();p.mesh.material.dispose();weaponProjectiles.splice(i,1)}
+      }
+    }
     function tryShoot(){
       if(gameState!=='playing'||shotCooldown>0||reloading)return;
       const weapon=currentWeapon();
       if(weapon.slot!=='melee'&&ammo<=0){startReload();return;}
-      if(weapon.slot!=='melee'){ammo--;saveAmmo();}shotsFired++;shotCooldown=weapon.cooldown;
+      if(weapon.slot!=='melee'){ammo--;saveAmmo();}shotsFired++;if(currentMode==='training')trainingSessionShots++;shotCooldown=weapon.cooldown;
+      gameAudio.shot(weapon);
       recoil=weapon.damage>100?.31:.12;muzzleTimer=weapon.slot==='melee'?0:.055;muzzle.visible=weapon.slot!=='melee';
       scene.updateMatrixWorld(true);
       const moving=keys.KeyW||keys.KeyS||keys.KeyA||keys.KeyD;
       const spread=(weapon.spread+(moving?weapon.movementSpread:0))*(sniperScopeLevel?0.45:1);
+      if(weapon.mechanic==='projectile'){launchWeaponProjectile(weapon);updateHUD();return;}
       const activeParts=bots.filter(b=>b.alive).flatMap(b=>b.parts);
-      let hitAny=false;
+      let hitAny=false,headshotAny=false,killedAny=false,wallHit=false;
       for(let pellet=0;pellet<weapon.pellets;pellet++){
         raycaster.setFromCamera(new THREE.Vector2((Math.random()-.5)*spread,(Math.random()-.5)*spread),camera);
         raycaster.near=0;raycaster.far=weapon.slot==='melee'?2.5:75;
@@ -927,38 +1390,115 @@ import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
         if(hits.length){
           endpoint.copy(hits[0].point);
           const bot=hits[0].object.userData.bot;
+          if(!bot)wallHit=true;
           if(bot&&bot.alive){
             hitAny=true;
             const head=['botHead','botHelmet'].includes(hits[0].object.name);
-            bot.health-=weapon.damage*upgradeMultiplier(selectedWeapon)*(head?weapon.headMultiplier:1);
-            if(head)showToast('ACERTO NA CABEÇA');
-            if(bot.health<=0)eliminateBot(bot);
+            if(currentMode==='training' && trainingDrillSelect.value==='headshot' && !head){
+              // Em treino de HS, impactos no corpo são registrados mas não danificam o alvo.
+            }else{
+              bot.health-=weapon.damage*upgradeMultiplier(selectedWeapon)*(head?weapon.headMultiplier*(bot.headMultiplier||2)/2:1);
+              if(head && currentMode==='training')trainingHeadshots++;
+            }
+            if(head)headshotAny=true;
+            if(bot.health<=0){killedAny=true;eliminateBot(bot);}
           }
         }
         if(weapon.slot!=='melee'&&(pellet===0||weapon.pellets===1))addTracer(camera.position.clone().addScaledVector(direction,.35),endpoint,0xffe3a0);
       }
-      if(hitAny){shotsHit++;hitmarker.classList.add('visible');hitTimer=.15;}
+      if(hitAny){
+        shotsHit++;if(currentMode==='training')trainingSessionHits++;hitmarker.classList.add('visible');hitTimer=.15;
+        if(headshotAny){gameAudio.headshot();showToast(killedAny?'HEADSHOT • ELIMINAÇÃO':'HEADSHOT!');}
+        else if(killedAny){gameAudio.kill();}
+        else gameAudio.hit();
+      }else if(wallHit){gameAudio.wallImpact();}
       updateHUD();
     }
+    // Granadas fictícias para o jogo: HE de área e fumaça visual (sem IA afetada).
+    const grenadeEntities=[];
+    let grenades={he:2,smoke:2};
+    const grenadeGeo=new THREE.SphereGeometry(.13,10,8);
+    function clearGrenades(){for(const g of grenadeEntities){scene.remove(g.mesh);g.mesh.geometry.dispose();g.mesh.material.dispose()}grenadeEntities.length=0}
+    function throwGrenade(kind){
+      if(gameState!=='playing'||weaponPanelOpen||grenades[kind]<=0)return;
+      grenades[kind]--;
+      const dir=new THREE.Vector3();camera.getWorldDirection(dir);
+      const mesh=new THREE.Mesh(grenadeGeo.clone(),new THREE.MeshStandardMaterial({color:kind==='he'?0x60744d:0x8997a0,metalness:.45,roughness:.5}));
+      mesh.position.copy(camera.position).addScaledVector(dir,.8);
+      scene.add(mesh);
+      const velocity=dir.multiplyScalar(12);velocity.y+=3.2;
+      grenadeEntities.push({kind,mesh,velocity,timer:kind==='he'?2.2:1.8,cloud:false,life:0});
+      showToast(kind==='he'?'GRANADA EXPLOSIVA LANÇADA':'GRANADA DE FUMAÇA LANÇADA');updateGrenadeHud();
+    }
+    function updateGrenadeHud(){const e=document.querySelector('#grenadeHud');if(e)e.textContent='G HE '+grenades.he+' · H FUMAÇA '+grenades.smoke}
+    function updateGrenades(dt){
+      for(let i=grenadeEntities.length-1;i>=0;i--){const g=grenadeEntities[i];
+        if(g.cloud){g.life-=dt;g.mesh.material.opacity=Math.min(.22,Math.max(0,g.life/8*.22));g.mesh.scale.setScalar(Math.min(1,1+(8-g.life)*.12));if(g.life<=0){scene.remove(g.mesh);g.mesh.geometry.dispose();g.mesh.material.dispose();grenadeEntities.splice(i,1)}continue}
+        g.timer-=dt;g.velocity.y-=12*dt;
+        g.mesh.position.addScaledVector(g.velocity,dt);
+        if(g.mesh.position.y<.16){g.mesh.position.y=.16;g.velocity.y*=-.42;g.velocity.x*=.72;g.velocity.z*=.72}
+        if(g.timer>0)continue;
+        if(g.kind==='he'){
+          gameAudio.explosion();
+          const p=g.mesh.position.clone();
+          const range=5.5; // raio lúdico: não representa uma arma real.
+          for(const bot of [...bots]){if(!bot.alive)continue;const dist=bot.group.position.distanceTo(new THREE.Vector3(p.x,0,p.z));if(dist<range){bot.health-=Math.round(120*(1-dist/range));if(bot.health<=0)eliminateBot(bot)}}
+          const pulse=new THREE.Mesh(new THREE.SphereGeometry(1,12,8),new THREE.MeshBasicMaterial({color:0xff9a40,transparent:true,opacity:.36,depthWrite:false}));pulse.position.copy(p);pulse.scale.setScalar(range);scene.add(pulse);
+          scene.remove(g.mesh);g.mesh.geometry.dispose();g.mesh.material.dispose();g.mesh=pulse;g.cloud=true;g.life=.18;
+        }else{
+          gameAudio.smoke();
+          scene.remove(g.mesh);g.mesh.geometry.dispose();g.mesh.material.dispose();
+          const smoke=new THREE.Mesh(new THREE.SphereGeometry(4,20,14),new THREE.MeshBasicMaterial({color:0x9ba4aa,transparent:true,opacity:.22,depthWrite:false}));smoke.position.copy(g.mesh.position);smoke.position.y=1.8;scene.add(smoke);
+          g.mesh=smoke;g.cloud=true;g.life=8;
+        }
+      }
+    }
+
     function startReload(){
       const weapon=currentWeapon();
       if(weapon.slot==='melee'||reloading||ammo>=weapon.magazine||reserveAmmo<=0)return;
+      gameAudio.reload(weapon);
       reloading=true;reloadTimer=weapon.reload;updateHUD();showToast(`RECARREGANDO ${weapon.name.toUpperCase()}`);
     }
     function updateBots(dt){
       for(const bot of bots){
         if(!bot.alive)continue;
         const position=bot.group.position;
-        const dx=camera.position.x-position.x,dz=camera.position.z-position.z;
+        const potentialTargets=currentMode==='bomb'
+          ?[{position:camera.position,ally:null},...teammates.filter(a=>a.alive).map(a=>({position:a.group.position,ally:a}))]
+          :[{position:camera.position,ally:null}];
+        let target=potentialTargets[0],best=Infinity;
+        for(const t of potentialTargets){const d=(t.position.x-position.x)**2+(t.position.z-position.z)**2;if(d<best){best=d;target=t;}}
+        const dx=target.position.x-position.x,dz=target.position.z-position.z;
         const distance=Math.hypot(dx,dz);
         bot.group.rotation.y=Math.atan2(dx,dz);
-        // Zumbis atacam corpo a corpo; não usam armas nem disparos probabilísticos.
-        if(currentMode==='training'){continue;}
-        if(distance>1.15){
+        if(currentMode==='training')continue;
+        if(currentMode==='bomb' && bot.bombDefender){
+          // Defensor tático: combate à distância com tracers.
+          bot.fireTimer-=dt;
+          if(distance>9){moveBot(bot,dx,dz,dt);}
+          if(distance<15&&bot.fireTimer<=0){
+            bot.fireTimer=.8+Math.random()*.7;
+            const hit=Math.random()<.53;
+            if(hit){
+              if(target.ally){target.ally.health-=13;if(target.ally.health<=0){target.ally.alive=false;scene.remove(target.ally.group);showToast('UM ALIADO FOI ELIMINADO');}}
+              else damagePlayer(7);
+            }
+            addTracer(position.clone().add(new THREE.Vector3(0,1.5,0)),target.position.clone().add(new THREE.Vector3(0,1.2,0)),0xf1aa71);
+          }
+        }else if(distance>1.15){
+          if(distance<8 && Math.random()<dt*.4)gameAudio.zombie(distance);
           moveBot(bot,dx,dz,dt);
-        } else {
+        }else{
           bot.attackTimer-=dt;
-          if(bot.attackTimer<=0){bot.attackTimer=1.15;damagePlayer(7+Math.min(wave,12));}
+          if(bot.attackTimer<=0){
+            bot.attackTimer=bot.attackInterval||1.15;gameAudio.zombie(distance);
+            const damage=bot.attack??7;
+            if(currentMode==='bomb'&&target.ally){
+              target.ally.health-=damage;
+              if(target.ally.health<=0){target.ally.alive=false;scene.remove(target.ally.group);showToast('UM ALIADO FOI ELIMINADO');}
+            }else damagePlayer(damage+(currentMode==='bomb'?0:Math.min(wave,12)));
+          }
         }
         const t=performance.now()*.005+position.x;
         for(const p of bot.parts){if(p.name==='botArm')p.rotation.x=Math.sin(t)*.14;}
@@ -970,56 +1510,67 @@ import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
     // Entradas do jogador
     // ------------------------------------------------------------
 
-    function startOrResume() {
-      if (gameState === 'menu' || gameState === 'ended') {
-        if(customLoading){mapStatus.textContent='Aguarde o carregamento do mapa antes de iniciar.';return;}
+    function beginGame(){
+      gameAudio.unlock();
+      if(customLoading){mapStatus.textContent='Aguarde o carregamento do mapa.';return;}
+      try{
+        gameEndOverlay.classList.add('hidden');
+        document.getElementById('trainingReport').classList.add('hidden');
+        pauseOverlay.classList.add('hidden');
         resetGame();
-        setOverlay(
-          'WMK ZOMBIE ARENA',
-          'Prepare-se para entrar na partida.',
-          'Entrando...'
-        );
-      } else {
-        startButton.textContent = 'Entrando...';
+        startButton.textContent='ENTRANDO...';
+        captureGameMouse();
+      }catch(error){
+        console.error('Falha ao iniciar WMK Zombie Arena:',error);
+        gameState='menu';
+        pauseOverlay.classList.add('hidden');gameEndOverlay.classList.add('hidden');
+        overlay.classList.remove('hidden');
+        overlayTitle.textContent='ERRO AO INICIAR PARTIDA';
+        overlayText.textContent='Não foi possível iniciar o modo selecionado: '+error.message;
+        startButton.textContent=modeButtonLabels[modeSelect.value]||'TENTAR NOVAMENTE';
       }
-
-      try {
-        const request = renderer.domElement.requestPointerLock();
-        if (request && typeof request.catch === 'function') {
-          request.catch(() => {
-            startButton.textContent = 'Tentar novamente';
-            overlayText.textContent = 'Não foi possível capturar o mouse. Use localhost (Live Server ou python -m http.server) e permita o bloqueio do ponteiro.';
-          });
-        }
-      } catch {
-        startButton.textContent = 'Tentar novamente';
-            overlayText.textContent = 'Não foi possível capturar o mouse. Use localhost (Live Server ou python -m http.server) e permita o bloqueio do ponteiro.';
+    }
+    function captureGameMouse(){
+      try{
+        const request=renderer.domElement.requestPointerLock();
+        if(request?.catch)request.catch((error)=>{
+          if(gameState==='paused'){
+            // Falha não apaga a sessão, apenas mantém a tela de entrada.
+            setOverlay('CAPTURA DO MOUSE','Permita a captura do mouse para iniciar ou retomar a partida. '+(error?.message||''),'TENTAR NOVAMENTE');
+          }
+        });
+      }catch(error){
+        if(gameState==='paused')setOverlay('CAPTURA DO MOUSE','Não foi possível capturar o mouse: '+error.message,'TENTAR NOVAMENTE');
       }
+    }
+    function startOrResume(){
+      if(gameState==='menu'||gameState==='ended'){beginGame();return;}
+      if(gameState==='paused'){captureGameMouse();}
     }
 
     startButton.addEventListener('click', startOrResume);
+    const audioToggle=document.querySelector('#audioToggle');
+    const audioVolume=document.querySelector('#audioVolume');
+    if(audioToggle){audioToggle.checked=gameAudio.config.enabled;audioToggle.addEventListener('change',e=>gameAudio.setEnabled(e.target.checked));}
+    if(audioVolume){audioVolume.value=Math.round(gameAudio.config.volume*100);audioVolume.addEventListener('input',e=>gameAudio.setVolume(Number(e.target.value)/100));}
+
 
     document.addEventListener('pointerlockchange', () => {
-      const locked = document.pointerLockElement === renderer.domElement;
-
-      if (locked) {
-        if (gameState === 'paused') gameState = 'playing';
-
-        if (gameState === 'playing') {
-          overlay.classList.add('hidden');
+      const locked=document.pointerLockElement===renderer.domElement;
+      if(locked){
+        if(gameState==='paused'||gameState==='menu'){
+          // 'menu' is only resumed when startOrResume created a session and set 'paused'.
+          if(gameState==='paused')gameState='playing';
+        }
+        if(gameState==='playing'){
+          pauseOverlay.classList.add('hidden');overlay.classList.add('hidden');
           document.body.classList.add('in-game');
         }
-      } else {
-        document.body.classList.remove('in-game');
-        shootHeld = false;
-
-        if (gameState === 'playing') {
-          gameState = 'paused';
-          if(!weaponPanelOpen)setOverlay(
-            'PARTIDA PAUSADA',
-            'O mouse foi liberado. Clique em continuar para voltar.',
-            'Continuar'
-          );
+      }else{
+        document.body.classList.remove('in-game');shootHeld=false;
+        if(gameState==='playing'){
+          if(weaponPanelOpen){gameState='paused';pauseOverlay.classList.add('hidden');}
+          else showPauseMenu();
         }
       }
     });
@@ -1032,8 +1583,9 @@ import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
         return;
       }
 
-      yaw -= event.movementX * 0.0022;
-      pitch -= event.movementY * 0.0022;
+      const sensitivity=sniperScopeLevel?0.0011:0.0022;
+      yaw -= event.movementX * sensitivity;
+      pitch -= event.movementY * sensitivity;
       pitch = Math.max(-1.48, Math.min(1.48, pitch));
 
       camera.rotation.set(pitch, yaw, 0, 'YXZ');
@@ -1043,7 +1595,7 @@ import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
       if(weaponPanelOpen){
         if(event.code==='Escape'||event.code==='KeyB'){event.preventDefault();closeWeaponPanel();return;}
         if(event.code==='Backspace'){event.preventDefault();buyCategory=null;buildWeaponUI();return;}
-        if(/^Digit[1-8]$/.test(event.code) && !event.repeat){event.preventDefault();handleBuyDigit(Number(event.code.slice(-1)));return;}
+        if(/^Digit[1-9]$/.test(event.code) && !event.repeat){event.preventDefault();handleBuyDigit(Number(event.code.slice(-1)));return;}
         return;
       }
       if (gameState !== 'playing') return;
@@ -1057,6 +1609,9 @@ import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 
       if(event.code==='KeyR'&&!event.repeat)startReload();
       if(event.code==='KeyV'&&!event.repeat){sniperScopeLevel=0;updateScope();}
+      if(event.code==='KeyP'&&!event.repeat)toggleCameraMode();
+      if(event.code==='KeyG'&&!event.repeat)throwGrenade('he');
+      if(event.code==='KeyH'&&!event.repeat)throwGrenade('smoke');
       if(!event.repeat && ['Digit1','Digit2','Digit3'].includes(event.code)){
         const slots=['primary','secondary','melee'];selectWeapon(loadout[slots[Number(event.code.slice(-1))-1]]);
       }
@@ -1068,7 +1623,7 @@ import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
     });
 
     window.addEventListener('mousedown', (event) => {
-      if(event.button===2&&gameState==='playing'&&!weaponPanelOpen&&(selectedWeapon==='awp'||selectedWeapon==='sniper')){sniperScopeLevel=(sniperScopeLevel+1)%3;updateScope();return;}
+      if(event.button===2&&gameState==='playing'&&!weaponPanelOpen&&(selectedWeapon==='awp'||selectedWeapon==='sniper')){sniperScopeLevel=(sniperScopeLevel+1)%3;gameAudio.scope();updateScope();return;}
       if (
         event.button === 0 &&
         gameState === 'playing' &&
@@ -1088,6 +1643,11 @@ import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
       for (const key in keys) delete keys[key];
     });
 
+    renderer.domElement.addEventListener('wheel',(event)=>{
+      if(!thirdPersonEnabled||gameState!=='playing')return;
+      event.preventDefault();
+      thirdPersonDistance=THREE.MathUtils.clamp(thirdPersonDistance+Math.sign(event.deltaY)*.45,2,7);
+    },{passive:false});
     renderer.domElement.addEventListener('contextmenu', (event) => {
       event.preventDefault();
     });
@@ -1121,6 +1681,7 @@ import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
             reserveAmmo -= loaded;
             saveAmmo();
             reloading = false;
+            gameAudio.reloadComplete();
             updateHUD();
           }
         }
@@ -1128,8 +1689,11 @@ import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
         if (shootHeld && currentWeapon().type === 'auto') tryShoot();
 
         updateBots(dt);
+        updateGrenades(dt);
+        updateWeaponProjectiles(dt);
         if(currentMode==='survival')updateWaves(dt);
         if(currentMode==='bomb')updateBombMode(dt);
+        if(currentMode==='training')updateTrainingTargets(dt);
         updateWeapon(dt, moving);
       }
 
@@ -1148,12 +1712,14 @@ import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
       if (gameState === 'playing') damageFlashAlpha = Math.max(0, damageFlashAlpha - dt * 1.8);
       damageFlash.style.opacity = damageFlashAlpha.toFixed(2);
 
-      renderer.render(scene, camera);
+      updateThirdPersonCamera(dt);
+      renderer.render(scene,thirdPersonEnabled&&sniperScopeLevel===0?thirdPersonCamera:camera);
     }
 
     window.addEventListener('resize', () => {
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
+      thirdPersonCamera.aspect=camera.aspect;thirdPersonCamera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
     });
 

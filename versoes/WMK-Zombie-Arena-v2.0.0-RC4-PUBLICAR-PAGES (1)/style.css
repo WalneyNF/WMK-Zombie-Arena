@@ -1,0 +1,496 @@
+* { box-sizing: border-box; }
+
+    html, body, #game {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+    }
+
+    body {
+      background: #171b1b;
+      color: #f3f2e8;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    #game canvas {
+      display: block;
+    }
+
+    #hud {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 3;
+      pointer-events: none;
+    }
+
+    body.in-game #hud {
+      display: block;
+    }
+
+    .hud-panel {
+      position: absolute;
+      padding: 12px 16px;
+      background: rgba(10, 15, 15, 0.74);
+      border: 1px solid rgba(225, 230, 215, 0.24);
+      box-shadow: 0 5px 22px rgba(0, 0, 0, 0.2);
+      backdrop-filter: blur(5px);
+      text-shadow: 0 1px 3px #000;
+    }
+
+    .top-left {
+      top: 20px;
+      left: 20px;
+      min-width: 230px;
+    }
+
+    .top-right {
+      top: 20px;
+      right: 20px;
+      text-align: right;
+    }
+
+    .bottom-left {
+      left: 20px;
+      bottom: 20px;
+      width: 225px;
+    }
+
+    .bottom-right {
+      right: 20px;
+      bottom: 20px;
+      min-width: 190px;
+      text-align: right;
+    }
+
+    .eyebrow {
+      color: #c5b879;
+      font-size: 10px;
+      font-weight: bold;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    .objective {
+      margin-top: 7px;
+      font-size: 13px;
+      letter-spacing: 0.5px;
+    }
+
+    .stat-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 12px;
+      letter-spacing: 1px;
+    }
+
+    .stat-row strong {
+      font-size: 20px;
+      letter-spacing: 0;
+    }
+
+    .health-track {
+      height: 7px;
+      margin-top: 8px;
+      overflow: hidden;
+      background: rgba(255, 255, 255, 0.16);
+    }
+
+    #healthFill {
+      display: block;
+      width: 100%;
+      height: 100%;
+      background: #9cbd72;
+      transition: width 0.15s, background 0.15s;
+    }
+
+    .weapon-name {
+      color: #c5b879;
+      font-size: 10px;
+      font-weight: bold;
+      letter-spacing: 2px;
+    }
+
+    #ammoText {
+      margin-top: 4px;
+      font-size: 22px;
+      font-weight: bold;
+      letter-spacing: 1px;
+    }
+
+    .ammo-caption {
+      margin-top: 3px;
+      color: #c6c8bc;
+      font-size: 10px;
+      letter-spacing: 1px;
+    }
+
+    #crosshair {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 20px;
+      height: 20px;
+      transform: translate(-50%, -50%);
+    }
+
+    #crosshair span {
+      position: absolute;
+      display: block;
+      background: #f4f2de;
+      border: 1px solid rgba(0, 0, 0, 0.7);
+      box-shadow: 0 0 2px #000;
+    }
+
+    #crosshair .up,
+    #crosshair .down {
+      left: 9px;
+      width: 2px;
+      height: 6px;
+    }
+
+    #crosshair .up { top: 0; }
+    #crosshair .down { bottom: 0; }
+
+    #crosshair .left,
+    #crosshair .right {
+      top: 9px;
+      width: 6px;
+      height: 2px;
+    }
+
+    #crosshair .left { left: 0; }
+    #crosshair .right { right: 0; }
+
+    #hitmarker {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 25px;
+      height: 25px;
+      transform: translate(-50%, -50%);
+      opacity: 0;
+    }
+
+    #hitmarker.visible {
+      opacity: 1;
+    }
+
+    #hitmarker i {
+      position: absolute;
+      top: 11px;
+      left: 2px;
+      width: 8px;
+      height: 2px;
+      background: white;
+    }
+
+    #hitmarker i:nth-child(1) { transform: rotate(45deg); }
+    #hitmarker i:nth-child(2) { left: 15px; transform: rotate(-45deg); }
+    #hitmarker i:nth-child(3) { top: 4px; transform: rotate(-45deg); }
+    #hitmarker i:nth-child(4) { top: 18px; transform: rotate(45deg); }
+
+    #toast {
+      position: absolute;
+      top: 62%;
+      left: 50%;
+      padding: 8px 14px;
+      color: #f6e7a1;
+      background: rgba(10, 15, 15, 0.72);
+      border: 1px solid rgba(225, 230, 215, 0.2);
+      font-size: 12px;
+      font-weight: bold;
+      letter-spacing: 2px;
+      opacity: 0;
+      transform: translate(-50%, 6px);
+      transition: opacity 0.15s, transform 0.15s;
+    }
+
+    #toast.visible {
+      opacity: 1;
+      transform: translate(-50%, 0);
+    }
+
+    #damageFlash {
+      position: fixed;
+      inset: 0;
+      z-index: 4;
+      pointer-events: none;
+      background: radial-gradient(
+        circle,
+        transparent 38%,
+        rgba(170, 18, 18, 0.6) 100%
+      );
+      opacity: 0;
+    }
+
+    #overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background:
+        linear-gradient(rgba(11, 16, 16, 0.58), rgba(11, 16, 16, 0.82)),
+        radial-gradient(ellipse at center, #58635b 0%, #202727 75%);
+    }
+
+    #overlay.hidden {
+      display: none;
+    }
+
+    .card {
+      width: min(600px, 100%);
+      padding: 34px;
+      background: rgba(12, 17, 17, 0.9);
+      border: 1px solid rgba(224, 220, 190, 0.28);
+      box-shadow: 0 20px 80px rgba(0, 0, 0, 0.45);
+    }
+
+    .card h1 {
+      margin: 9px 0 10px;
+      font-size: clamp(30px, 7vw, 50px);
+      line-height: 1;
+      letter-spacing: 2px;
+    }
+
+    .card p {
+      color: #c7cbc1;
+      line-height: 1.5;
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 9px;
+      margin: 22px 0;
+    }
+
+    .control {
+      padding: 10px;
+      color: #c7cbc1;
+      background: rgba(255, 255, 255, 0.05);
+      font-size: 12px;
+    }
+
+    .control strong {
+      display: block;
+      margin-bottom: 4px;
+      color: #e7d898;
+      font-size: 11px;
+      letter-spacing: 1px;
+    }
+
+    button {
+      width: 100%;
+      padding: 14px 18px;
+      border: 0;
+      color: #171b17;
+      background: #c5b879;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: bold;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    button:hover {
+      background: #ded29a;
+    }
+
+    .note {
+      margin-top: 13px;
+      color: #89918a;
+      font-size: 11px;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 520px) {
+      .card { padding: 24px; }
+      .top-left { top: 10px; left: 10px; min-width: 0; }
+      .top-right { top: 10px; right: 10px; }
+      .bottom-left { left: 10px; bottom: 10px; }
+      .bottom-right { right: 10px; bottom: 10px; min-width: 0; }
+    }
+
+/* Melhorias visuais da versão 1.1 */
+.hud-sub { margin-top: 8px; font-size: 11px; color: #d0d5c9; }
+#credits { position: fixed; z-index: 11; bottom: 7px; left: 50%; transform: translateX(-50%); font-size: 10px; color: #aeb8ae; text-shadow: 0 1px 4px #000; pointer-events: none; white-space: nowrap; }
+#credits a { color: #d4c789; pointer-events: auto; }
+body.in-game #credits { opacity: .4; }
+#crosshair { transition: width .1s, height .1s; }
+body.crouching #crosshair { filter: drop-shadow(0 0 3px #93c4a8); }
+button:focus-visible { outline: 3px solid #fff4b1; outline-offset: 3px; }
+@media (max-width: 520px) { #credits { font-size: 8px; } .controls { grid-template-columns: 1fr 1fr; } }
+
+
+/* === Zombie Arena v1.2.0 === */
+#hud .hud-sub{font-size:11px;color:#c9cec2;margin-top:7px}#hud .objective strong{color:#e7b76b}#hud .top-right strong{font-size:17px}#overlay{overflow-y:auto}#overlay .card{max-width:640px;max-height:95vh;overflow-y:auto}.setting-label{display:block;color:#d5bc79;font-size:11px;letter-spacing:2px;margin:12px 0 6px}#mapSelect{width:100%;padding:12px;background:#28332f;color:#fff;border:1px solid #7b856c;font-size:14px}#weaponBar{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);display:flex;gap:6px;max-width:100%;pointer-events:none}#weaponBar .slot{border:1px solid #7c826a;background:#111b1acc;padding:7px 10px;font-size:11px;white-space:nowrap}#weaponBar .slot.active{border-color:#ebc16c;background:#786036bb;color:white}#weaponPanel{position:fixed;inset:0;z-index:15;background:#050b0ddd;display:flex;align-items:center;justify-content:center;padding:20px}#weaponPanel.hidden{display:none}.weapon-card{max-width:820px;width:100%;max-height:90vh;overflow:auto;background:#192421;border:1px solid #768c78;padding:25px}.weapon-card h2{margin:8px 0}.weapon-card p{color:#c9caba;line-height:1.6}.weapon-choice{display:flex;align-items:center;justify-content:space-between;text-align:left;background:#2c3834;border:1px solid #526760;color:#eee;margin:8px 0;padding:12px;gap:15px;letter-spacing:0;text-transform:none}.weapon-choice:hover{background:#475b4f}.weapon-choice small{display:block;color:#d3d8c8;margin-top:5px;font-weight:normal}#closeWeapons{margin-top:14px}#credits{z-index:5}body.in-game #credits{opacity:.4}body:not(.in-game) #weaponBar{display:none}@media(max-width:640px){#weaponBar{bottom:92px;flex-wrap:wrap;justify-content:center}.slot{font-size:9px!important}.hud-panel{padding:8px!important}}
+
+.editor-link{display:block;text-align:center;padding:12px;margin:12px 0;border:1px solid #7fc777;color:#b9f4a4;text-decoration:none;background:#173025;font-weight:700;letter-spacing:1px}.editor-link:hover{background:#254a31}
+
+/* v1.5.1 — Compra clássica e skins */
+#weaponPanel .weapon-card{width:min(900px,96vw);max-width:900px;border:2px solid #72936b;background:linear-gradient(160deg,#1c2b2b,#10191a);box-shadow:0 12px 75px #000c}
+.buy-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}.buy-head h2{font-size:clamp(20px,3vw,33px);letter-spacing:2px}.buy-head p{font-size:12px}.buy-close{width:auto;min-width:115px;padding:10px;background:#3d5147;color:#f4f1df}.buy-breadcrumb{color:#a1caa4;font-size:11px;letter-spacing:2px;border-top:1px solid #425d4b;padding-top:10px}.buy-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin:14px 0}.buy-grid .weapon-choice{margin:0;min-height:68px}.buy-status{background:#14221b;padding:9px 12px;color:#e4d397;border-left:3px solid #b8b879;font-size:12px}.skin-area{padding:10px 0}.skin-area[hidden]{display:none}.skin-area h3{font-size:13px;letter-spacing:2px;color:#c2dd9b}.skin-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}.skin-swatch{background:#283b33;border:1px solid #53735c;color:#e6eee5;font-size:12px;text-align:left;display:flex;align-items:center;gap:8px;letter-spacing:0;padding:9px}.skin-dot{display:inline-block;width:23px;height:23px;border:1px solid #dce9d0;flex:none;border-radius:3px}.skin-swatch:hover{background:#47604d}#buyBack{margin-top:12px}#weaponBar .slot{max-width:200px;overflow:hidden;text-overflow:ellipsis}@media(max-width:600px){.buy-grid{grid-template-columns:1fr}.skin-grid{grid-template-columns:repeat(2,1fr)}}
+
+
+/* WMK Zombie Arena v1.5.2 — reconstrução da tela inicial
+   Mantém IDs usados pelo game.js e não modifica o motor FPS. */
+#overlay{
+  display:flex;align-items:center;justify-content:center;overflow:hidden;
+  padding:clamp(10px,2.5vh,26px);background:linear-gradient(110deg,rgba(4,12,13,.97),rgba(10,25,24,.89)),radial-gradient(circle at 72% 40%,#2d5941,#09120f 65%);
+}
+#overlay.hidden{display:none}
+#overlay .card{
+  position:relative;width:min(1080px,100%);max-width:none;max-height:min(94dvh,950px);
+  padding:0;display:flex;flex-direction:column;overflow:hidden;
+  background:linear-gradient(145deg,#142622 0%,#101c1c 60%,#0c1516 100%);
+  border:1px solid #456a53;border-radius:14px;
+  box-shadow:0 24px 95px #000c, inset 0 1px 0 #b9f3a522;
+}
+#overlay .card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,#70d47d,#b8ce6d,#275944)}
+.menu-hero{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:18px 26px 14px;border-bottom:1px solid #345144;flex-shrink:0;background:#12231ed9}
+.menu-brand{display:flex;gap:22px;align-items:center;min-width:0}
+#overlay .main-logo{display:block;flex:none;width:195px;max-width:28vw;height:auto;max-height:85px;object-fit:contain;margin:0}
+.menu-brand-copy{min-width:0}
+#overlay .menu-brand-copy h1{margin:4px 0 3px;font-size:clamp(24px,2.5vw,35px);letter-spacing:1px;line-height:1.1;color:#f2f7e9}
+#overlay .menu-brand-copy p{font-size:12px;line-height:1.45;max-width:550px;margin:0;color:#c8d2c7}
+.menu-version{align-self:flex-start;white-space:nowrap;padding:7px 10px;border:1px solid #547659;color:#d9e7bc;font:700 10px Arial;letter-spacing:1.1px;border-radius:4px}
+.menu-main{display:grid;grid-template-columns:minmax(0,1.12fr) minmax(0,1fr);gap:18px;padding:18px 24px;overflow-y:auto;min-height:0;scrollbar-color:#55775f #16241f}
+.menu-section{min-width:0;background:#182a25b8;border:1px solid #344c40;border-radius:9px;padding:16px 18px}
+.section-heading h2{font-size:15px;color:#c4e59e;letter-spacing:1.4px;margin:0 0 5px}
+.section-heading p{font-size:12px;color:#b7c6b9;margin:0 0 12px}
+#overlay .setting-label{font-size:10px;letter-spacing:1px;margin:10px 0 5px;color:#b7d4a0}
+#overlay select{display:block;width:100%;min-width:0;height:38px;padding:7px 33px 7px 11px;background:#0f1c1b;color:#f0f6ed;border:1px solid #496454;border-radius:5px;font:12px Arial,sans-serif;outline:none;cursor:pointer}
+#overlay select:focus-visible{outline:2px solid #a6dc9b;outline-offset:1px}
+#overlay .map-note{font-size:11px;color:#b7cbb9;margin:8px 0;line-height:1.4}
+#openLocalMap.secondary-btn{background:#21392e;color:#d3ebc8;border:1px solid #52735b;border-radius:5px;font-size:10px;padding:9px 10px;letter-spacing:.7px;min-height:34px}
+#bombInstructions{font-size:11px;line-height:1.4;padding:8px 10px;margin-top:10px;border-left:3px solid #c2b26d;background:#293024;color:#e1d6a6}
+.menu-help .controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin:0}
+.menu-help .control{padding:9px 10px;min-width:0;border:1px solid #32473f;border-radius:5px;background:#0e1d1b;color:#c1cfc5;font-size:11px;line-height:1.4}
+.menu-help .control strong{display:block;color:#b8df9f;font-size:10px;margin:0 0 3px;letter-spacing:.5px}
+.menu-tip{margin-top:12px;padding:10px;border-radius:5px;background:#24392f;color:#d1e3c8;font-size:11px;line-height:1.45}
+.menu-bottom{padding:14px 24px 15px;border-top:1px solid #365246;flex-shrink:0;background:#101d1a}
+.menu-actions{display:grid;grid-template-columns:1fr 1.15fr;gap:12px;align-items:stretch}
+#overlay .menu-editor{display:flex;justify-content:center;align-items:center;min-width:0;margin:0;border:1px solid #5d8d6b;border-radius:5px;background:#203b2f;color:#b9e8bb;text-decoration:none;font-size:11px;padding:12px;letter-spacing:.5px}
+#overlay #startButton{margin:0;border-radius:5px;background:#b4da82;color:#12221b;font-size:12px;font-weight:900;letter-spacing:1.2px;padding:12px}
+#overlay #startButton:hover{background:#d2ee9e}
+.menu-docs{margin:10px 0 0;color:#b7cdb6;font-size:11px}
+.menu-docs summary{cursor:pointer;list-style:revert;display:list-item;margin-left:18px;padding:4px 0}
+#overlay .docs-menu{display:flex;flex-wrap:wrap;gap:6px;margin:7px 0}
+#overlay .docs-menu a{font-size:10px;display:inline-block;border:1px solid #3c5d4d;border-radius:4px;padding:6px 8px;color:#cfe5bb;text-decoration:none;background:#1d3128}
+#overlay .menu-credit{font-size:11px;color:#d3daca;text-align:center;margin:9px 0 0}
+#overlay .menu-credit strong{color:#d5eda7}
+#overlay .menu-credit a{color:#b9dda6}
+#overlay .note{display:none}
+#credits{max-width:95vw;overflow:hidden;text-overflow:ellipsis}
+@media(max-height:720px) and (min-width:721px){
+ .menu-hero{padding:10px 20px}.menu-main{padding:10px 20px;gap:12px}.menu-section{padding:10px 14px}
+ #overlay .main-logo{max-height:60px;width:160px}.menu-bottom{padding:9px 20px}
+ #overlay .menu-brand-copy h1{font-size:24px}.section-heading p{margin-bottom:6px}
+}
+@media(max-width:720px){
+ #overlay{padding:8px;align-items:center}
+ #overlay .card{max-height:96dvh}
+ .menu-hero{padding:12px;gap:8px}.menu-brand{gap:10px}
+ #overlay .main-logo{width:100px;max-width:24vw;max-height:65px}
+ #overlay .menu-brand-copy h1{font-size:19px}
+ #overlay .menu-brand-copy p{font-size:10px;line-height:1.3}
+ .menu-version{display:none}
+ .menu-main{grid-template-columns:1fr;padding:10px;gap:10px}
+ .menu-section{padding:12px}.menu-help .controls{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .menu-bottom{padding:10px}.menu-actions{grid-template-columns:1fr;gap:7px}
+ #overlay .menu-editor,#overlay #startButton{min-height:37px;padding:9px}
+}
+@media(max-width:380px){.menu-help .controls{grid-template-columns:1fr}.menu-brand-copy .eyebrow{display:none}}
+
+#scopeOverlay[hidden]{display:none!important}#scopeOverlay{position:absolute;inset:0;z-index:5;pointer-events:none;background:radial-gradient(circle at center,transparent 0,transparent min(31vh,31vw),#050706 32vw,#050706 100%)}#scopeOverlay .scope-line-h{position:absolute;top:50%;left:15%;width:70%;height:1px;background:#161a17}#scopeOverlay .scope-line-v{position:absolute;left:50%;top:12%;height:76%;width:1px;background:#161a17}#scopeOverlay .scope-dot{position:absolute;left:50%;top:50%;width:4px;height:4px;transform:translate(-50%,-50%);background:#111;border-radius:50%}#scopeOverlay span{position:absolute;bottom:15%;left:50%;transform:translateX(-50%);color:#d2dcce;font-size:11px;background:#121b18a8;padding:5px 10px;white-space:nowrap}body.sniper-scoped #crosshair{display:none}
+
+.grenade-hud{position:absolute;bottom:105px;right:22px;padding:7px 12px;border-radius:6px;background:#14201ac9;border:1px solid #6d936e;font-size:12px;color:#d5f2b7;font-weight:700;text-shadow:0 1px 2px #000}
+
+/* v1.8.1: áudio acessível e independente da escala do menu */
+.audio-controls{display:flex;gap:15px;flex-wrap:wrap;align-items:center;margin:10px 0;padding:9px 10px;border:1px solid #42634d;border-radius:6px;background:#192a23;color:#dce8d7;font-size:12px}
+.audio-controls label{display:flex;align-items:center;gap:8px;cursor:pointer}.audio-controls input[type=range]{width:105px;accent-color:#96d36e}.audio-controls input[type=checkbox]{accent-color:#96d36e}
+
+/* WMK Academia de FPS — opções do modo treinamento */
+.training-options{margin:12px 0;padding:12px;border:1px solid #53755c;border-radius:8px;background:#13231bd9;display:grid;gap:7px}.training-options[hidden]{display:none}.training-hint{font-size:12px;color:#b7d3be;margin:4px 0}.training-options select{max-width:100%}
+
+/* WMK v1.8.8 — Academia FPS */
+.training-status{margin-top:8px;padding:9px;background:#1e3a2b;border-left:3px solid #a8de86;border-radius:4px;color:#d9f0cd;font-size:12px;line-height:1.4}
+.training-stats{display:none;position:fixed;left:50%;top:72px;transform:translateX(-50%);z-index:6;pointer-events:none;background:#0e211ddc;border:1px solid #719978;border-radius:7px;padding:10px 14px;font-weight:700;color:#d1e8b4;text-shadow:0 1px 2px #000;font-size:12px;white-space:nowrap;max-width:95vw;overflow:hidden;text-overflow:ellipsis}
+body.in-game .training-stats:not(:empty){display:block}
+
+/* WMK v1.8.9 - indicador de câmera FPS/TPS */
+#cameraModeHud{position:absolute;top:76px;right:20px;padding:7px 11px;border:1px solid #507761;border-radius:6px;background:rgba(13,24,20,.76);color:#d0efbd;font:700 11px/1.4 Arial,sans-serif;letter-spacing:1px;text-shadow:0 1px 2px #000;pointer-events:none;}
+body.third-person #scopeOverlay:not([hidden]){display:none;}
+
+/* v1.9.0 - modalidades separadas e acessíveis */
+.wmk-mode-heading{color:#d5e5d7;font-size:12px;letter-spacing:1.4px;margin:8px 0 10px}
+.wmk-mode-selector{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin:8px 0 12px}
+#overlay .wmk-mode-card{width:100%;min-height:94px;text-align:left;border:1px solid #446259;background:#172c29;color:#d6e7dc;border-radius:9px;display:flex;flex-direction:column;gap:8px;justify-content:center;padding:12px;letter-spacing:0;text-transform:none;transition:border-color .16s,background .16s}
+#overlay .wmk-mode-card strong{font-size:13px;color:#e8faed}
+#overlay .wmk-mode-card span{font-size:11px;font-weight:400;color:#aec1b8;line-height:1.35}
+#overlay .wmk-mode-card.active{background:#284e39;border:2px solid #a4e994;box-shadow:0 0 0 1px #264632}
+#overlay .wmk-mode-card:focus-visible{outline:3px solid #e7ce81;outline-offset:2px}
+#overlay .wmk-mode-config{border:1px solid #426753;border-radius:9px;background:#12231f;padding:13px;margin-top:8px}
+#overlay .wmk-mode-config h3{color:#c6e7b8;font-size:13px;margin:0 0 9px}
+#overlay .wmk-mode-config[hidden]{display:none!important}
+#overlay .wmk-mode-hint{font-size:12px;color:#b8d0c4;margin:0 0 7px}
+.visually-hidden-select{position:absolute!important;width:1px!important;height:1px!important;opacity:0!important;pointer-events:none!important;clip-path:inset(50%)}
+@media(max-width:820px){.wmk-mode-selector{grid-template-columns:1fr}.wmk-mode-card{min-height:62px!important}}
+
+/* WMK 1.9.1: menus independentes por contexto */
+#pauseOverlay{position:fixed;inset:0;z-index:40;display:grid;place-items:center;padding:18px;background:rgba(3,12,12,.86);backdrop-filter:blur(9px)}
+#pauseOverlay.hidden{display:none}
+.wmk-pause-card{width:min(500px,100%);background:linear-gradient(140deg,#1d302b,#101c1b);border:1px solid #62836e;border-radius:12px;box-shadow:0 18px 90px #000a;padding:28px;text-align:center;color:#e9f2e6}
+.pause-kicker{font-size:10px;letter-spacing:2px;color:#9fcc91}.wmk-pause-card h2{margin:12px 0;color:#d6efb4;font-size:clamp(20px,4vw,30px)}
+.wmk-pause-card p{line-height:1.5;color:#b8c9bd}.pause-details{display:flex;justify-content:center;gap:9px;flex-wrap:wrap;padding:13px 0}.pause-details span{padding:6px 10px;background:#243f35;border-radius:6px;font-size:12px;color:#c5e6c1}
+.pause-actions{display:grid;gap:12px;margin:15px 0}.pause-actions button{cursor:pointer;border:1px solid #73917b;border-radius:7px;padding:15px;font-weight:700;color:white;background:#315346}.pause-actions #resumeGame{background:#a9d782;color:#12231b}.pause-actions button:hover{filter:brightness(1.15)}.pause-note{font-size:12px}
+
+/* Configuração v1.9.3: equipes, miras e avatares */
+.wmk-team-setup{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.wmk-team-setup label{min-width:0}
+.wmk-crosshair-settings,.wmk-avatar-select{margin:11px 0;padding:11px;border:1px solid #426753;border-radius:9px;background:#172924}
+.wmk-crosshair-settings h3,.wmk-avatar-select h3{margin:0 0 6px;color:#bbeb9c;font-size:13px}
+.wmk-crosshair-settings label,.wmk-avatar-select label{display:block;font-size:12px;color:#b8ccba;margin-top:5px}
+.wmk-crosshair-settings input[type=color]{width:70px;height:32px;background:transparent;border:0}
+.wmk-crosshair-settings input[type=range]{display:block;width:100%;accent-color:#a9e48b}
+.wmk-aim-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 10px}
+.wmk-avatar-select .editor-link{display:inline-block;margin:8px 0}
+#crosshair.wmk-reticle{width:var(--wmk-cross-size,20px);height:var(--wmk-cross-size,20px)}
+#crosshair.wmk-reticle span{background:var(--wmk-cross-color,#f4f2de);border:0;box-shadow:0 0 2px #000,0 0 2px #000}
+#crosshair.wmk-reticle .up,#crosshair.wmk-reticle .down{left:calc(50% - var(--wmk-cross-thick,2px) / 2);width:var(--wmk-cross-thick,2px);height:calc(var(--wmk-cross-size,20px) * .28)}
+#crosshair.wmk-reticle .left,#crosshair.wmk-reticle .right{top:calc(50% - var(--wmk-cross-thick,2px) / 2);height:var(--wmk-cross-thick,2px);width:calc(var(--wmk-cross-size,20px) * .28)}
+#crosshair.wmk-reticle.wmk-dot span,#crosshair.wmk-reticle.wmk-circle span{display:none}
+#crosshair.wmk-reticle.wmk-dot:after{content:'';position:absolute;left:50%;top:50%;width:var(--wmk-cross-thick,2px);height:var(--wmk-cross-thick,2px);background:var(--wmk-cross-color);border-radius:50%;transform:translate(-50%,-50%)}
+#crosshair.wmk-reticle.wmk-circle:after,#crosshair.wmk-reticle.wmk-hybrid:after{content:'';position:absolute;left:25%;top:25%;width:50%;height:50%;border:var(--wmk-cross-thick,2px) solid var(--wmk-cross-color);border-radius:50%;box-sizing:border-box}
+@media(max-width:680px){.wmk-team-setup,.wmk-aim-grid{grid-template-columns:1fr}}
+
+/* WMK 1.9.4 — Relatório final de treino, independente de menu principal e pausa */
+#trainingReport{position:fixed;inset:0;z-index:60;display:grid;place-items:center;padding:18px;background:rgba(3,11,12,.92);backdrop-filter:blur(10px);overflow-y:auto}
+#trainingReport.hidden{display:none!important}
+.wmk-results-card{width:min(720px,100%);max-height:94vh;overflow-y:auto;padding:clamp(18px,3vw,32px);border:1px solid #7ba58c;border-radius:13px;background:linear-gradient(140deg,#1a342a,#101e1b);color:#e8f4eb;box-shadow:0 16px 70px #000c}
+.results-eyebrow{font-size:11px;letter-spacing:2px;color:#a4dc9b;font-weight:700}
+.wmk-results-card h2{font-size:clamp(23px,4vw,34px);color:#d3f4aa;margin:10px 0}
+.wmk-results-card p{color:#b8cdc2;line-height:1.5}
+.results-mode{margin:12px 0;padding:10px;background:#253e32;border-radius:6px}
+.results-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}
+.results-grid>div{padding:12px;border:1px solid #476955;border-radius:8px;background:#152923;min-width:0}
+.results-grid small{display:block;color:#aac5b4;font-size:11px}
+.results-grid strong{display:block;margin-top:5px;font-size:clamp(15px,2.5vw,24px);color:#e2f9d3}
+.results-distances{display:flex;gap:8px;flex-wrap:wrap}.results-distances>div{padding:6px 10px;border:1px solid #496a57;border-radius:6px;background:#213b2c;font-size:12px}
+.results-help{font-size:12px}.results-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:18px}.results-actions button{padding:15px 10px;cursor:pointer;border:1px solid #7a9c7f;border-radius:7px;background:#2d5940;color:#eaffdf;font-weight:800}.results-actions #trainingRestart{background:#bee38e;color:#112518}
+@media(max-width:600px){.results-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.results-actions{grid-template-columns:1fr}}
+
+/* v1.9.5: tipos de inimigo na Operação Bomba */
+.wmk-enemy-choice{padding:10px 12px;margin:10px 0;border:1px solid #496e56;border-radius:9px;background:rgba(14,40,35,.48)}
+.wmk-enemy-choice select{width:100%;max-width:100%}.wmk-zombie-studio-link{display:inline-block;margin:7px 0;color:#c0e89c;font-size:13px;text-decoration:underline}
+
+/* 2.0.0-rc1: o encerramento da partida possui tela separada do menu de configuração. */
+#gameEndOverlay{position:fixed;inset:0;z-index:120;display:flex;align-items:center;justify-content:center;background:rgba(6,12,14,.88);padding:16px}
+#gameEndOverlay.hidden{display:none!important}
+#gameEndOverlay .wmk-pause-card{max-width:min(620px,95vw);width:100%;}

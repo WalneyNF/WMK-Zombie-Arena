@@ -27,7 +27,8 @@ export const BUY_CATEGORIES=[
  {id:'machine',name:'METRALHADORAS',key:'5'},
  {id:'primaryAmmo',name:'MUNIÇÃO PRINCIPAL',key:'6'},
  {id:'secondaryAmmo',name:'MUNIÇÃO SECUNDÁRIA',key:'7'},
- {id:'equipment',name:'EQUIPAMENTOS (EM BREVE)',key:'8'}
+ {id:'equipment',name:'EQUIPAMENTOS (EM BREVE)',key:'8'},
+ {id:'special',name:'ARMAS COMUNITÁRIAS',key:'9'}
 ];
 // O nome de uma skin não altera dano, alcance, recarga ou precisão.
 export const SKINS={

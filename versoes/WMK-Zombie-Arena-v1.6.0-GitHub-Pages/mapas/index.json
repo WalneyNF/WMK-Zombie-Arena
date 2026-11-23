@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "maps": [
+    {
+      "id": "porto-noturno",
+      "file": "porto-noturno.json",
+      "name": "Porto Noturno",
+      "mode": "Sobrevivência",
+      "difficulty": "Intermediário",
+      "description": "Porto com contêineres e passagens estreitas",
+      "accent": "#284a61",
+      "author": "WMK"
+    },
+    {
+      "id": "complexo-industrial",
+      "file": "complexo-industrial.json",
+      "name": "Complexo Industrial",
+      "mode": "Sobrevivência",
+      "difficulty": "Difícil",
+      "description": "Coberturas e corredores industriais",
+      "accent": "#63513f",
+      "author": "WMK"
+    },
+    {
+      "id": "vila-abandonada",
+      "file": "vila-abandonada.json",
+      "name": "Vila Abandonada",
+      "mode": "Sobrevivência",
+      "difficulty": "Intermediário",
+      "description": "Vila com pontos de ataque variados",
+      "accent": "#45583d",
+      "author": "WMK"
+    },
+    {
+      "id": "campo-treinamento",
+      "file": "campo-treinamento.json",
+      "name": "Campo de Treinamento",
+      "mode": "Treinamento",
+      "difficulty": "Fácil",
+      "description": "Arena para praticar tiro e movimentação",
+      "accent": "#356753",
+      "author": "WMK"
+    },
+    {
+      "id": "fortaleza-deserta",
+      "file": "fortaleza-deserta.json",
+      "name": "Fortaleza Deserta",
+      "mode": "Operação bomba",
+      "difficulty": "Difícil",
+      "description": "Fortificação com áreas de objetivo",
+      "accent": "#8b6948",
+      "author": "WMK"
+    }
+  ]
+}

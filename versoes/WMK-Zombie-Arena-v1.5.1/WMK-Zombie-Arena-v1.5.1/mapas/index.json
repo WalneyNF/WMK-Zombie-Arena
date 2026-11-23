@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "maps": [
+    {
+      "id": "porto-noturno",
+      "file": "porto-noturno.json",
+      "name": "Porto Noturno"
+    },
+    {
+      "id": "complexo-industrial",
+      "file": "complexo-industrial.json",
+      "name": "Complexo Industrial"
+    },
+    {
+      "id": "vila-abandonada",
+      "file": "vila-abandonada.json",
+      "name": "Vila Abandonada"
+    },
+    {
+      "id": "campo-treinamento",
+      "file": "campo-treinamento.json",
+      "name": "Campo de Treinamento"
+    },
+    {
+      "id": "fortaleza-deserta",
+      "file": "fortaleza-deserta.json",
+      "name": "Fortaleza Deserta"
+    }
+  ]
+}

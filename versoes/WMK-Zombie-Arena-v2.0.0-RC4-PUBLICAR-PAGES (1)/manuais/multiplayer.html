@@ -1,0 +1,25 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Arquitetura: FPS online por equipes (5x5) — WMK Zombie Arena</title><style>body{background:#0d1515;color:#e8eee9;font:16px/1.75 system-ui,Arial,sans-serif;max-width:1040px;margin:0 auto;padding:28px}h1,h2,h3{color:#a8e47e;line-height:1.3}a{color:#a8e47e}nav{display:flex;gap:16px;flex-wrap:wrap;border-bottom:1px solid #42604f;padding-bottom:14px}nav a{font-size:14px}pre{background:#071111;border:1px solid #365845;border-radius:8px;padding:16px;overflow:auto;font-size:13px;line-height:1.5}code{color:#f0d795}pre code{color:#e3efd7}table{border-collapse:collapse;width:100%;margin:15px 0}td,th{border-bottom:1px solid #344d42;padding:10px;text-align:left}aside{background:#1c3024;border-left:4px solid #9cd57f;padding:16px}li{padding-bottom:5px}.muted{color:#a5b5ad}footer{margin-top:60px;border-top:1px solid #344d42;padding-top:16px;font-size:13px}</style></head><body><nav><a href="../index.html">Jogar</a><a href="../editor.html">Editor</a><a href="../roadmap.html">Roadmap</a><a href="usuario.html">Jogadores</a><a href="audio-armas.html">Áudio e armas</a><a href="multiplayer.html">Multiplayer</a><a href="contribuir.html">Contribuir</a></nav><header><img src="../assets/logo.svg" alt="WMK Zombie Arena" width="400"></header><h1>Arquitetura: FPS online por equipes (5x5)</h1><p class="muted">Documentação v1.8.1 • Código MIT • 22/11/2026</p>
+<aside><strong>Estado real:</strong> multiplayer NÃO está implementado na v1.8.1. Este é o projeto técnico para implementar salas online. O GitHub Pages continuará hospedando o cliente, mas o servidor de partidas deverá rodar em outro serviço.</aside>
+<h2>1. Dois modos multiplayer planejados</h2><table><tr><th>Modo</th><th>Jogadores</th><th>Regras</th></tr><tr><td>Equipes / 5x5</td><td>Até 10, duas equipes</td><td>Rodadas, compra, eliminação, bomba A/B e tempo de rodada</td></tr><tr><td>Sobrevivência cooperativa</td><td>2–4 inicialmente</td><td>Todos contra ondas de zumbis, revive, objetivo comum</td></tr><tr><td>Deathmatch</td><td>Configurável</td><td>Respawn, pontos por eliminação, tempo limitado</td></tr></table>
+<h2>2. Arquitetura</h2><pre><code>GitHub Pages (HTML/CSS/JS/Three.js)
+       |  conexão segura WSS
+       v
+Servidor autoritativo (Node.js + Colyseus ou ws)
+  ├── Lobby / salas / equipes
+  ├── Simulação de posições e colisões
+  ├── Validação de tiros, dano, munição e granadas
+  ├── Temporizadores e objetivos da rodada
+  ├── Anti-spam, limites e logs
+  └── Estado sincronizado com os jogadores</code></pre>
+<p>Não use apenas broadcast de coordenadas entre navegadores: jogadores podem adulterar posição, vida ou quantidade de munição. O cliente envia inputs e solicitações; o servidor valida e decide.</p>
+<h2>3. Exemplo conceitual de protocolo</h2><pre><code>// Cliente → servidor
+{"type":"input","seq":204,"moveX":0,"moveZ":1,"yaw":1.3,"shoot":false}
+{"type":"fire","weapon":"m4a1","shotId":"204-1"}
+{"type":"chooseTeam","team":"blue"}
+// Servidor → clientes
+{"type":"snapshot","tick":970,"players":[],"zombies":[],"round":{"timeLeft":75}}
+{"type":"hit","shooterId":"p2","targetId":"p5","damage":31}</code></pre>
+<h2>4. Regras técnicas</h2><ol><li>Receber inputs em sequência com números de ordem e limites.</li><li>Executar tick fixo no servidor (por exemplo, 20–30 atualizações/s).</li><li>Enviar snapshots compactos para todos os clientes da sala.</li><li>Interpolar entidades remotas no cliente e prever movimento local com reconciliação.</li><li>Validar distância do tiro, linha de visão, tempo mínimo entre disparos, munição e objetivo A/B.</li><li>Autenticar IDs de sala e limitar tamanho de mensagens, nomes e requisições.</li><li>Reagir a desconexões, latência, reconexão e abandono.</li></ol>
+<h2>5. Etapas entregáveis</h2><table><tr><th>Fase</th><th>O que provar antes de avançar</th></tr><tr><td>Online 0</td><td>Servidor WSS responde ao health check e conecta dois navegadores</td></tr><tr><td>Online 1</td><td>Lobby, criar/entrar em sala e ver até 10 jogadores</td></tr><tr><td>Online 2</td><td>Movimento remoto com interpolação e estado autoritativo</td></tr><tr><td>Online 3</td><td>Tiros, dano, morte, respawn e anti-cheat básico</td></tr><tr><td>Online 4</td><td>Partidas 5x5, equipes, economia, bomba, espectador e placar</td></tr><tr><td>Online 5</td><td>Coop zumbis, sincronização de IA e matchmaking</td></tr></table>
+<h2>6. Ferramentas possíveis</h2><p><a href="https://docs.colyseus.io/">Colyseus</a> é uma opção focada em salas, matchmaking e sincronização de estado. A alternativa <code>ws</code> oferece WebSockets de baixo nível, exigindo implementar mais sistemas manualmente. Em qualquer caso, o Pages serve arquivos estáticos e não hospeda um processo Node.js persistente. É necessário um provedor que aceite WSS e processos de longa duração, ou uma máquina própria com acesso de rede e TLS adequados.</p>
+<footer>Walney Moreira Klein — <a href="mailto:walneyk@hotmail.com">walneyk@hotmail.com</a> • <a href="../LICENSE">Licença MIT</a></footer></body></html>

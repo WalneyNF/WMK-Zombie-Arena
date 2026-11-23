@@ -60,6 +60,86 @@
       "description": "Arena industrial original com tanques, passarelas, prateleiras e linhas de tiro para rifle de precisão",
       "accent": "#425f5b",
       "author": "WMK"
+    },
+    {
+      "id": "linha-producao",
+      "file": "linha-producao.json",
+      "name": "Linha de Produção",
+      "mode": "Sobrevivência",
+      "difficulty": "Intermediário",
+      "description": "Fábrica com máquinas e linhas de visão interrompidas",
+      "accent": "#466a62",
+      "author": "WMK"
+    },
+    {
+      "id": "doca-de-carga",
+      "file": "doca-de-carga.json",
+      "name": "Doca de Carga",
+      "mode": "Sobrevivência",
+      "difficulty": "Fácil",
+      "description": "Pátio industrial modular com contêineres e docas",
+      "accent": "#506785",
+      "author": "WMK"
+    },
+    {
+      "id": "estacao-manutencao",
+      "file": "estacao-manutencao.json",
+      "name": "Estação de Manutenção",
+      "mode": "Treinamento / Sobrevivência",
+      "difficulty": "Difícil",
+      "description": "Manutenção ferroviária fictícia com pilares e cobertura",
+      "accent": "#63776d",
+      "author": "WMK"
+    },
+    {
+      "id": "academia-precisao",
+      "file": "academia-precisao.json",
+      "name": "Academia de Precisão",
+      "mode": "Treinamento",
+      "difficulty": "Fácil",
+      "description": "Linhas para treino de mira e reconhecimento de distâncias",
+      "accent": "#437e62",
+      "author": "WMK"
+    },
+    {
+      "id": "cemiterio-neblina",
+      "file": "cemiterio-neblina.json",
+      "name": "Cemitério Neblina",
+      "mode": "Sobrevivência",
+      "difficulty": "Intermediário",
+      "description": "Lápides, mausoléu, túmulos e caminhos abertos para ataques de zumbis.",
+      "accent": "#667269",
+      "author": "WMK"
+    },
+    {
+      "id": "vila-sombria",
+      "file": "vila-sombria.json",
+      "name": "Vila Sombria",
+      "mode": "Sobrevivência",
+      "difficulty": "Difícil",
+      "description": "Casas com telhados e quintais, postes, ruas e rotas alternativas.",
+      "accent": "#685b52",
+      "author": "WMK"
+    },
+    {
+      "id": "fazenda-crepusculo",
+      "file": "fazenda-crepusculo.json",
+      "name": "Fazenda do Crepúsculo",
+      "mode": "Sobrevivência",
+      "difficulty": "Intermediário",
+      "description": "Casa rural, celeiro, cercas, poço e preparação para futuras noites de defesa.",
+      "accent": "#64734e",
+      "author": "WMK"
+    },
+    {
+      "id": "bairros-abandonados",
+      "file": "bairros-abandonados.json",
+      "name": "Bairros Abandonados",
+      "mode": "Sobrevivência",
+      "difficulty": "Difícil",
+      "description": "Mapa de 320 metros para explorar vários quarteirões.",
+      "accent": "#495e63",
+      "author": "WMK"
     }
   ]
 }

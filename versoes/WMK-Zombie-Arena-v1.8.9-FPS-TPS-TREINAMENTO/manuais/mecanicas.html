@@ -1,0 +1,91 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>WMK - mecanicas</title><style>body{max-width:1000px;margin:auto;padding:24px;font:16px/1.65 system-ui;background:#0e1916;color:#e4eee3}h1,h2,h3{color:#b6ef8c}a{color:#c4e79a}table{border-collapse:collapse;width:100%;display:block;overflow-x:auto}th,td{padding:8px 12px;border:1px solid #44604a;text-align:left}pre{overflow-x:auto;background:#1c2823;padding:14px;border-radius:8px}code{background:#26382e;padding:2px 5px}nav{display:flex;flex-wrap:wrap;gap:14px;border-bottom:1px solid #536651;padding-bottom:12px}blockquote{border-left:3px solid #a2d889;padding-left:14px}img{max-width:100%}</style></head><body><nav><a href="../index.html">Jogo</a><a href="../editor.html">Editor</a><a href="../roadmap.html">Roadmap</a><a href="usuario.html">Jogador</a><a href="desenvolvedor.html">Desenvolvedor</a><a href="editor-mapas.html">Editor</a><a href="mecanicas.html">Mecânicas</a><a href="pesquisa-fps.html">Pesquisa</a><a href="arsenal-skins.html">Arsenal e skins</a></nav><h1>Mecânicas de FPS de sobrevivência — estudo completo</h1>
+<p><strong>Escopo:</strong> explicar o funcionamento dos sistemas de um FPS com hordas, apontando quando a versão atual implementa a mecânica e quando é uma proposta futura. Não é um manual de uso de armas reais.</p>
+<h2>1. Loop central (<em>core gameplay loop</em>)</h2>
+<pre><code class="language-text">Escolher mapa → Entrar na arena → Mirar e movimentar → Eliminar zumbis
+        ↑                                                │
+        └──── Próxima onda ← Recarregar/posicionar ←───────┘
+                          │
+                    Vida chega a 0 → Fim de partida
+</code></pre>
+<p>O incentivo é sobreviver mais tempo. Pontos e número da onda indicam progresso. <strong>Estado:</strong> implementado.</p>
+<h2>2. Movimento em primeira pessoa</h2>
+<p>O jogador controla movimento em plano horizontal usando orientação da câmera (<em>yaw</em>), e mira verticalmente usando <em>pitch</em>. A diagonal é normalizada para não conceder vantagem de velocidade. Correr altera velocidade; agachar altera posição e/ou apresentação da câmera; pulo usa velocidade vertical e gravidade simulada. <strong>Estado:</strong> implementado de forma simplificada.</p>
+<h2>3. Detecção de obstáculos</h2>
+<p>Uma colisão simplificada testa o centro do jogador com raio contra os limites <code>minX/maxX/minZ/maxZ</code> dos obstáculos. Movimentações são verificadas separadamente em X e Z para facilitar deslizamento em paredes. Não há cápsula de colisão tridimensional completa. <strong>Estado:</strong> implementado, com limitações.</p>
+<h2>4. Disparos (<em>hitscan</em>)</h2>
+<p>Quando o usuário atira, o programa constrói um ou mais raios a partir da câmera e identifica o primeiro objeto interceptado. Parede bloqueadora deve impedir dano no alvo atrás dela. A munição diminui e a próxima tentativa aguarda <code>cooldown</code>. Não há queda gravitacional de projétil nesta versão. <strong>Estado:</strong> implementado.</p>
+<h2>5. Diferenças entre armas</h2>
+<table>
+<thead>
+<tr>
+  <th>Fator</th>
+  <th>Efeito jogável</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>damage</code></td>
+  <td>dano base de cada raio que acerta</td>
+</tr>
+<tr>
+  <td><code>headMultiplier</code></td>
+  <td>multiplicador quando o acerto é registrado como cabeça</td>
+</tr>
+<tr>
+  <td><code>cooldown</code></td>
+  <td>intervalo mínimo em segundos entre disparos</td>
+</tr>
+<tr>
+  <td><code>magazine</code></td>
+  <td>quantidade máxima antes de recarga</td>
+</tr>
+<tr>
+  <td><code>reserve</code></td>
+  <td>munição extra disponível</td>
+</tr>
+<tr>
+  <td><code>reload</code></td>
+  <td>duração de recarga em segundos</td>
+</tr>
+<tr>
+  <td><code>spread</code></td>
+  <td>dispersão da mira mesmo parado</td>
+</tr>
+<tr>
+  <td><code>movementSpread</code></td>
+  <td>dispersão extra ao se deslocar</td>
+</tr>
+<tr>
+  <td><code>pellets</code></td>
+  <td>número de raios por disparo, útil para escopeta</td>
+</tr>
+<tr>
+  <td><code>type</code></td>
+  <td><code>auto</code>: segurar botão atira continuamente; <code>semiauto</code>: clique individual</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Estado:</strong> implementado em <code>weapons.js</code> e <code>game.js</code>.</p>
+<h2>6. Recarga</h2>
+<p>A arma não ganha munição infinita: o pente é preenchido com o mínimo entre o que falta e o disponível na reserva. A ação leva tempo e impede disparos nesse intervalo. Cada arma tem seu próprio inventário inicial. <strong>Estado:</strong> implementado.</p>
+<h2>7. Recuo, animação e feedback</h2>
+<p>Recuo visual desloca a representação geométrica da arma após um disparo; <em>muzzle flash</em> simula clarão; <em>hitmarker</em> marca impactos confirmados; efeitos temporários desaparecem após curto intervalo. Isso não é igual a um modelo físico de recuo nem inclui animações esqueléticas. <strong>Estado:</strong> feedback básico implementado; animações completas futuras.</p>
+<h2>8. Zumbis</h2>
+<p>A versão atual usa inimigos geométricos com vida que se aproximam do jogador e causam dano por proximidade. Vida e velocidade aumentam conforme a onda. A escolha de caminho é local/simplificada: zumbis podem ficar presos. <strong>Estado:</strong> implementado de forma básica; animações, tipos especiais, percepção e navmesh futuros.</p>
+<h2>9. Ondas</h2>
+<p>A onda 1 inicia com <code>min(4 + 1 × 2, 28) = 6</code> inimigos. A onda 2 tem 8; onda 3, 10; até o teto de 28. A próxima onda começa após o intervalo programado, e a vida é recuperada parcialmente. <strong>Estado:</strong> implementado.</p>
+<h2>10. Mapas</h2>
+<p>São layouts de blocos 3D montados por funções: contêineres, armazém e ruas. Uma boa arena deve oferecer rotas alternativas, linhas de visão, gargalos, locais de recarga e pontos de spawn fora do campo imediato do jogador. <strong>Estado:</strong> três mapas básicos implementados; editor visual e mapas realistas futuros.</p>
+<h2>11. HUD e interface</h2>
+<p>A tela mostra informações rápidas: vida, munição, pontos, onda, zumbis restantes e seleção de armas. Interface de compra com dinheiro e preços não foi implementada — o painel B é uma seleção de armas, não uma loja. <strong>Estado:</strong> HUD e seleção presentes; economia futura.</p>
+<h2>12. Progressão, economia e upgrades (propostas)</h2>
+<p>Possíveis extensões: dinheiro por eliminação, compra entre ondas, desbloqueio de armas, compra de munição, melhorias temporárias e persistência de configurações. Ainda <strong>não implementadas</strong>.</p>
+<h2>13. IA avançada (proposta)</h2>
+<p>Máquina de estados: <code>vagar → perceber jogador → perseguir → atacar → recuar/morrer</code>. Use campo de visão, sons, navegação por caminhos e comportamento em grupo. Com mais inimigos, use estados em lote, particionamento espacial e limites de atualização.</p>
+<h2>14. Áudio e efeitos (proposta)</h2>
+<p>Sons por arma, passos por material, vocalizações de zumbis, música dinâmica e áudio 3D. Ajustes de volume e acessibilidade: não depender apenas do som para sinalizar ataques.</p>
+<h2>15. Multiplayer (proposta distante)</h2>
+<p>Para partidas online, um servidor autoritativo deve validar posições, colisões, dano, munição e progresso. Cliente envia entradas, servidor reconcilia, e estados são interpolados no navegador. WebSocket sozinho não resolve latência e prevenção de trapaça.</p>
+<h2>16. Testes essenciais</h2>
+<p>Teste cada arma com pente cheio/vazio, troca durante recarga, escopeta junto a paredes, tiro com zumbi atrás de obstáculo, spam de ESC/B, retomada após troca de aba e performance em ondas altas. Registre resultados em uma issue do GitHub e compare FPS.</p>
+<footer>Walney Moreira Klein — walneyk@hotmail.com</footer></body></html>

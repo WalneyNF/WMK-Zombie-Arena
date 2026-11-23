@@ -1,0 +1,24 @@
+{
+  "version": "2.0.0-rc4",
+  "status": "candidate",
+  "base": "2.0.0-rc3",
+  "publishedOnPages": false,
+  "scope": [
+    "FPS RC3 completo",
+    "Correções de avatar e zoom",
+    "Links da Cidade Viva, Loja W$ e backups JSON",
+    "W$ por eliminação e upgrade de armas no jogo"
+  ],
+  "requiresFromGitHubMain": [
+    "cidade-viva.html",
+    "cidade-viva.js",
+    "wmk-loja.html",
+    "wmk-shop.js",
+    "wmk-shop-catalog.js",
+    "wmk-shop-inventory.js",
+    "wmk-economy.js",
+    "wmk-configuracoes.html",
+    "wmk-config.js"
+  ],
+  "notes": "Publicador preserva os módulos da main, integrando este pacote sem deletá-los. Browser tests still required."
+}

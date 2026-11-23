@@ -1,0 +1,40 @@
+name: Publicar WMK Zombie Arena no GitHub Pages
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: true
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validar arquivos necessários
+        run: |
+          for file in index.html game.js style.css weapons.js map-library.js editor.html editor.js editor.css marketplace.html marketplace.js marketplace.css mapas/index.json assets/logo.svg; do
+            test -s "$file" || { echo "ERRO: arquivo ausente: $file"; exit 1; }
+          done
+          python3 -m json.tool mapas/index.json > /dev/null
+          node --check game.js
+          node --check editor.js
+          node --check marketplace.js
+          node --check avatar-studio.js
+          node --check zombie-studio.js
+          node --check zoom-controls.js
+          test -s "version.json"
+          python3 -m json.tool version.json > /dev/null
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'
+      - id: deployment
+        uses: actions/deploy-pages@v4

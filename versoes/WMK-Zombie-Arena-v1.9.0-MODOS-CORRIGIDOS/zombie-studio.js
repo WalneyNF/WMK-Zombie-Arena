@@ -1,0 +1,38 @@
+import * as THREE from 'three';
+import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+import {TransformControls} from 'three/addons/controls/TransformControls.js';
+import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
+import {setupWorkspace} from './workspace.js';
+import {BUILTIN_ZOMBIES,allZombieTypes,saveCustomZombie,deleteCustomZombie,normalizeZombie,exportZombie,parseZombieFile} from './zombie-types.js';
+const $=id=>document.getElementById(id),scene=new THREE.Scene();scene.background=new THREE.Color('#233533');
+const cam=new THREE.PerspectiveCamera(60,innerWidth/innerHeight,.1,180);cam.position.set(5,4,7);
+const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));renderer.setSize(innerWidth,innerHeight);$('viewport').append(renderer.domElement);
+scene.add(new THREE.HemisphereLight(0xe4f5ff,0x334638,2.3));const sun=new THREE.DirectionalLight(0xffdfaa,2);sun.position.set(8,13,7);scene.add(sun);
+const ground=new THREE.Mesh(new THREE.PlaneGeometry(60,60),new THREE.MeshStandardMaterial({color:0x45594e}));ground.rotation.x=-Math.PI/2;scene.add(ground);scene.add(new THREE.GridHelper(40,40,0x70947e,0x476453));
+const orbit=new OrbitControls(cam,renderer.domElement);orbit.enableDamping=true;orbit.target.set(0,1.4,0);orbit.mouseButtons={LEFT:THREE.MOUSE.PAN,MIDDLE:THREE.MOUSE.ROTATE,RIGHT:THREE.MOUSE.PAN};orbit.update();
+const gizmo=new TransformControls(cam,renderer.domElement);scene.add(gizmo);gizmo.addEventListener('dragging-changed',e=>orbit.enabled=!e.value);
+const character=new THREE.Group();scene.add(character);let modelChild=null,geoParts=[];const loader=new GLTFLoader();let previewObjectUrl=null;
+function part(geo,material,x,y,z){const m=new THREE.Mesh(geo,material);m.position.set(x,y,z);character.add(m);geoParts.push(m)}
+const fields=['id','name','health','speed','attack','attackInterval','scale','headMultiplier','points','color','model'];let current=structuredClone(BUILTIN_ZOMBIES.comum),originalId=current.id;
+function message(t){$('notice').textContent=t}
+function buildBody(z){for(const m of geoParts){character.remove(m);m.geometry.dispose();m.material.dispose()}geoParts=[];const skin=new THREE.MeshStandardMaterial({color:z.color,roughness:.85});const limb=new THREE.MeshStandardMaterial({color:0x2b3b35});part(new THREE.BoxGeometry(.72,1,.42),skin,0,1.12,0);part(new THREE.SphereGeometry(.27,16,12),skin,0,1.88,0);for(const x of [-.2,.2])part(new THREE.BoxGeometry(.25,.75,.3),limb,x,.38,0);for(const x of [-.51,.51])part(new THREE.BoxGeometry(.23,.85,.3),skin,x,1.1,0);character.scale.setScalar(z.scale);}
+function makeGlbVisual(gltf){if(modelChild){character.remove(modelChild);modelChild=null}const clone=gltf.scene.clone(true),bounds=new THREE.Box3().setFromObject(clone),dims=bounds.getSize(new THREE.Vector3()),center=bounds.getCenter(new THREE.Vector3());clone.position.sub(center);const wrapper=new THREE.Group();wrapper.add(clone);wrapper.scale.setScalar(2.1/Math.max(dims.y,.01));wrapper.position.y=1.12;character.add(wrapper);modelChild=wrapper;for(const m of geoParts)m.visible=false}
+async function loadGlb(path){if(modelChild){character.remove(modelChild);modelChild=null}for(const m of geoParts)m.visible=true;if(!path)return;try{const g=await loader.loadAsync(path);makeGlbVisual(g);message('Prévia GLB carregada.')}catch(e){message('GLB não disponível, modelo provisório exibido: '+e.message)}}
+function populate(){for(const f of fields)$(f).value=current[f];buildBody(current);gizmo.detach();gizmo.attach(character);loadGlb(current.model)}
+function read(){const x={};for(const f of fields)x[f]=$ (f).value;return normalizeZombie(x)}
+function list(){const all=allZombieTypes();$('base').replaceChildren();$('list').replaceChildren();for(const z of Object.values(all)){const opt=new Option(z.name+' ['+z.id+']',z.id);$('base').add(opt);const b=document.createElement('button');b.textContent=(BUILTIN_ZOMBIES[z.id]?'★ ':'☣ ')+z.name+' ('+z.id+')';b.onclick=()=>select(z.id);$('list').append(b)}$('base').value=current.id}
+function select(id){const z=allZombieTypes()[id];if(!z)return;current=structuredClone(z);originalId=id;populate();list();message(BUILTIN_ZOMBIES[id]?'Tipo oficial: duplique para editar.':'Tipo comunitário carregado.')}
+$('base').onchange=e=>select(e.target.value);
+$('duplicate').onclick=()=>{try{const z=read(),all=allZombieTypes();let id=z.id.replace(/_copia\d*$/,'')+'_copia',i=2;while(all[id])id=z.id+'_copia'+i++;current={...z,id,name:z.name+' (cópia)'};originalId='';populate();message('Cópia criada. Altere parâmetros e clique Salvar.')}catch(e){message(e.message)}};
+$('save').onclick=()=>{try{const z=read();if(originalId && originalId!==z.id && !BUILTIN_ZOMBIES[originalId])message('Novo ID: o tipo anterior continuará salvo.');saveCustomZombie(z);current=z;originalId=z.id;list();message('Tipo salvo no navegador. Abra o editor de mapas e selecione este tipo no spawn.')}catch(e){message(e.message)}};
+function download(name,value){const u=URL.createObjectURL(new Blob([value],{type:'application/json'}));const a=document.createElement('a');a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),1000)}
+$('export').onclick=()=>{try{const z=read();download(z.id+'.zombie.json',exportZombie(z));message('Tipo exportado em JSON.')}catch(e){message(e.message)}};
+$('import').onclick=()=>$('jsonFile').click();$('jsonFile').onchange=async()=>{try{const z=parseZombieFile(await $('jsonFile').files[0].text());current=z;originalId='';populate();message('JSON carregado. Clique Salvar para registrar o tipo.')}catch(e){message(e.message)}$('jsonFile').value=''};
+$('delete').onclick=()=>{if(BUILTIN_ZOMBIES[current.id])return message('Tipo oficial protegido.');if(!confirm('Excluir '+current.name+' deste navegador?'))return;deleteCustomZombie(current.id);select('comum')};
+$('glbFile').onchange=async()=>{const file=$('glbFile').files[0];if(!file)return;if(previewObjectUrl)URL.revokeObjectURL(previewObjectUrl);previewObjectUrl=URL.createObjectURL(file);await loadGlb(previewObjectUrl);message('GLB local apenas para prévia; copie para assets/models/ e configure o caminho para publicar.')};
+$('resetView').onclick=()=>{cam.position.set(5,4,7);orbit.target.set(0,1.4,0);orbit.update()};
+$('moveMode').onclick=()=>gizmo.setMode('translate');$('rotateMode').onclick=()=>gizmo.setMode('rotate');$('scaleMode').onclick=()=>gizmo.setMode('scale');function snap(){gizmo.setTranslationSnap($('snap').checked?.25:null);gizmo.setRotationSnap($('snap').checked?Math.PI/12:null);gizmo.setScaleSnap($('snap').checked?.25:null)}$('snap').onchange=snap;snap();
+window.addEventListener('keydown',e=>{if(['INPUT','SELECT','TEXTAREA'].includes(document.activeElement?.tagName))return;if(e.code==='KeyG')gizmo.setMode('translate');if(e.code==='KeyR')gizmo.setMode('rotate');if(e.code==='KeyS')gizmo.setMode('scale');if(e.code==='KeyF')$('resetView').click();if(e.code==='Numpad7'){cam.position.set(0,9,.01);cam.lookAt(0,1,0)}if(e.code==='Numpad1'){cam.position.set(0,2,9);cam.lookAt(0,1,0)}if(e.code==='Numpad3'){cam.position.set(9,2,0);cam.lookAt(0,1,0)}});
+const defaults={panelZombie:{x:16,y:68,w:330,h:innerHeight*.72},panelVisual:{x:innerWidth-322,y:68,w:305,h:320},panelLibrary:{x:innerWidth-322,y:398,w:305,h:300}};
+setupWorkspace({prefix:'wmk-zombie-studio',panels:Object.keys(defaults),toolbar:$('workspaceToolbar'),defaults,status:message});
+select('comum');function animate(){requestAnimationFrame(animate);orbit.update();renderer.render(scene,cam)}animate();addEventListener('resize',()=>{cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});

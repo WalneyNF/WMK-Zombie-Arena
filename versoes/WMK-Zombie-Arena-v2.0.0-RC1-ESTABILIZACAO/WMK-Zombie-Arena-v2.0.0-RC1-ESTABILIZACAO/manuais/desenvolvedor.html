@@ -1,0 +1,70 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>WMK - desenvolvedor</title><style>body{max-width:1000px;margin:auto;padding:24px;font:16px/1.65 system-ui;background:#0e1916;color:#e4eee3}h1,h2,h3{color:#b6ef8c}a{color:#c4e79a}table{border-collapse:collapse;width:100%;display:block;overflow-x:auto}th,td{padding:8px 12px;border:1px solid #44604a;text-align:left}pre{overflow-x:auto;background:#1c2823;padding:14px;border-radius:8px}code{background:#26382e;padding:2px 5px}nav{display:flex;flex-wrap:wrap;gap:14px;border-bottom:1px solid #536651;padding-bottom:12px}blockquote{border-left:3px solid #a2d889;padding-left:14px}img{max-width:100%}</style></head><body><nav><a href="../index.html">Jogo</a><a href="../editor.html">Editor</a><a href="../roadmap.html">Roadmap</a><a href="usuario.html">Jogador</a><a href="desenvolvedor.html">Desenvolvedor</a><a href="editor-mapas.html">Editor</a><a href="mecanicas.html">Mecânicas</a><a href="pesquisa-fps.html">Pesquisa</a><a href="arsenal-skins.html">Arsenal e skins</a></nav><h1>Manual do desenvolvedor — WMK Zombie Arena</h1>
+<p><strong>Público:</strong> iniciante a intermediário em JavaScript/Three.js.<br />
+<strong>Autor:</strong> Walney Moreira Klein — walneyk@hotmail.com</p>
+<h2>1. Ambiente e fluxo de execução</h2>
+<p>HTML/CSS definem a interface; <code>game.js</code> importa <code>three.module.js</code> do CDN e <code>WEAPONS</code> de <code>weapons.js</code>. Use servidor HTTP local (<code>py -m http.server 5500</code> ou Live Server). Não há <code>npm</code>, transpiler, servidor de jogo nem backend nesta versão.</p>
+<h2>2. Arquitetura atual</h2>
+<pre><code class="language-text">index.html ─── style.css
+    │
+    └─ game.js (ES module)
+          ├─ Three.js (CDN)
+          └─ weapons.js
+
+   Input → estado → atualização (delta time) → renderização
+                  ├─ movimento/colisão
+                  ├─ armas/hitscan
+                  ├─ IA de zumbis
+                  ├─ ondas/pontuação
+                  └─ HUD/efeitos
+</code></pre>
+<h3>Arquivos</h3>
+<ul>
+<li><code>index.html</code>: botões, seleção de mapa, painéis, HUD, informações da partida.</li>
+<li><code>style.css</code>: posicionamento absoluto de HUD, overlays, responsividade básica.</li>
+<li><code>weapons.js</code>: objeto <code>WEAPONS</code> e array <code>WEAPON_ORDER</code>; facilita balanceamento sem mudar o loop.</li>
+<li><code>game.js</code>: implementação ainda monolítica; contém criação de cena, mapas, controles, colisões, gerenciador de ondas, zumbis, raycasting e animação.</li>
+</ul>
+<h2>3. Parâmetros das armas</h2>
+<p>Cada objeto contém <code>name</code>, <code>type</code>, <code>magazine</code>, <code>reserve</code>, <code>damage</code>, <code>headMultiplier</code>, <code>cooldown</code>, <code>reload</code>, <code>spread</code>, <code>movementSpread</code>, <code>pellets</code>, <code>color</code> e <code>length</code>.</p>
+<p>Exemplo didático:</p>
+<pre><code class="language-js">export const WEAPONS = {
+  training: {
+    name: 'Arma de treino', type: 'semiauto', magazine: 12,
+    reserve: 48, damage: 20, headMultiplier: 2,
+    cooldown: 0.3, reload: 1.5, spread: 0.01,
+    movementSpread: 0.02, pellets: 1,
+    color: 0x555555, length: 0.3
+  }
+};
+</code></pre>
+<p>Este exemplo ilustra os campos; não substitua o objeto completo por ele, pois as cinco armas já existentes e os IDs em <code>WEAPON_ORDER</code> são necessários para a versão atual.</p>
+<h3>Relações úteis</h3>
+<p><strong>Cadência teórica</strong> ≈ <code>60 / cooldown</code> disparos por minuto (sem recarga). <strong>Dano potencial de escopeta</strong> = <code>damage × pellets</code>, somente se todos os fragmentos acertarem, ignorando multiplicadores. <strong>Munição total inicial</strong> = <code>magazine + reserve</code>. Ajuste cada fator isoladamente.</p>
+<h2>4. Colisões e mapa</h2>
+<p><code>buildMap(id)</code> constrói caixas no Three.js. <code>addBox(...)</code> alimenta limites retangulares de colisão. <code>isBlocked(x,z,radius)</code> resolve colisões 2D simples no chão; não há gravidade física para caixas móveis, paredes inclinadas nem suporte completo a múltiplos pavimentos. O Raycaster usa objetos bloqueadores para impedir tiros atravessando determinadas estruturas.</p>
+<h2>5. Zumbis e ondas</h2>
+<p><code>createBot(x,z)</code> gera geometria simples com vida, velocidade e temporizador de ataque. <code>updateBots(dt)</code> aproxima zumbis e aplica dano por contato dentro do alcance configurado. <code>startWave()</code> cria a quantidade da rodada; <code>updateWaves(dt)</code> aguarda transição. Valores atuais relevantes: vida base <code>70 + wave * 18</code>, pontos por eliminação <code>100</code>, quantidade da onda <code>min(4 + wave * 2, 28)</code> e intervalo de aproximadamente <code>3.8 s</code> entre ondas. Não há pathfinding global nem árvore de comportamento.</p>
+<h2>6. Tiro, dispersão e recarga</h2>
+<p><code>tryShoot()</code> verifica estado da partida, temporizador de cadência, munição disponível e recarga; dispara raios de Three.js (<em>hitscan</em>). <code>startReload()</code> inicia contagem de recarga; completar recarga transfere munição da reserva para o pente. A mira possui dispersão base e movimento pode acrescentar dispersão. A escopeta usa vários raios (<em>pellets</em>). Valores são de balanceamento, não balística física.</p>
+<h2>7. Estado e loop</h2>
+<p>O laço <code>requestAnimationFrame</code> calcula <code>dt</code>, atualiza controles, armas, inimigos, ondas, indicadores e renderiza. O tempo da atualização é limitado para reduzir saltos grandes de simulação. <code>Pointer Lock</code> ativa a câmera com mouse; <code>Esc</code> devolve controle ao navegador.</p>
+<h2>8. Cuidados de desempenho e segurança</h2>
+<ul>
+<li>Evite recriar muitas geometrias e materiais por quadro; utilize cache, <em>InstancedMesh</em> e <em>object pooling</em> quando aumentar o número de inimigos.</li>
+<li>Evite fazer <code>scene.updateMatrixWorld(true)</code> e buscas de objetos mais vezes que o necessário.</li>
+<li>Para multiplayer futuro, NÃO confie no cliente para calcular dano, munição, posição nem pontuação: valide no servidor.</li>
+<li>Não injete conteúdo externo diretamente com <code>innerHTML</code>; prefira <code>textContent</code> para dados não confiáveis.</li>
+<li>Respeite licenças de modelos, texturas, áudio e bibliotecas. Não reutilize arquivos retirados de CS:GO/CS 1.6.</li>
+</ul>
+<h2>9. Exercícios progressivos</h2>
+<ol>
+<li><strong>Iniciante:</strong> altere <code>pistol.damage</code>, depois <code>reload</code>, e documente o efeito.</li>
+<li><strong>Iniciante:</strong> altere o nome exibido de uma arma sem modificar seu ID.</li>
+<li><strong>Intermediário:</strong> crie uma dificuldade configurável em vez de constantes espalhadas.</li>
+<li><strong>Intermediário:</strong> destaque zumbis próximos por uma barra de vida.</li>
+<li><strong>Avançado:</strong> extraia <code>GameState</code>, <code>WeaponSystem</code>, <code>ZombieSystem</code>, <code>MapSystem</code> e <code>HUD</code> para módulos próprios, com testes isolados.</li>
+<li><strong>Avançado:</strong> implemente uma máquina de estados de zumbi (<code>idle</code>, <code>chase</code>, <code>attack</code>, <code>dead</code>) e detecção de obstáculos antes de mover.</li>
+</ol>
+<h2>10. Evolução recomendada (não implementada)</h2>
+<p>Refatoração modular (<code>src/</code>), configurações em JSON, zumbis com GLB/animações, mapas com GLTF, som espacial, navegação com navmesh, modos de dificuldade, save/config persistente e posteriormente servidor autoritativo WebSocket.</p>
+<footer>Walney Moreira Klein — walneyk@hotmail.com</footer></body></html>

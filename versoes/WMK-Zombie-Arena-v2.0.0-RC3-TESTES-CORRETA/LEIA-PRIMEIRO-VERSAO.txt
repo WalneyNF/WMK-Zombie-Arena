@@ -1,0 +1,10 @@
+WMK Zombie Arena v2.0.0-RC3 — pacote local de testes
+
+Este e o pacote completo de testes RC3, NAO a base v1.7 do GitHub.
+Inclui mapa grande, editores, modos de jogo e zoom atualizado.
+A Cidade Viva, Loja W$ e backup JSON incorporados recentemente ao GitHub NAO estao consolidados neste ZIP.
+Repositorio GitHub main tem atualizacoes parciais da antiga base 1.7 e requer reconciliacao com este pacote.
+Nao considerar esta entrega uma publicacao RC3 no GitHub Pages.
+
+Para testar: py -m http.server 5500, depois http://localhost:5500/
+Autor: Walney Moreira Klein — walneyk@hotmail.com

@@ -1,0 +1,67 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>WMK — Mapas grandes e terror leve</title><style>:root{color-scheme:dark}body{font:16px/1.65 system-ui,Arial;max-width:1100px;margin:auto;padding:30px;background:#0c1718;color:#e5eae4}h1,h2,h3{color:#b8e89e}pre{background:#081110;padding:14px;overflow:auto;border-radius:8px}code{color:#c2e6b2}a{color:#baff99}</style></head><body><a href="../editor.html">← Voltar ao editor de mapas</a><h1>WMK Zombie Arena — Mapas maiores e objetos de terror leve (v1.9.6)</h1>
+<p><strong>Autor:</strong> Walney Moreira Klein — walneyk@hotmail.com</p>
+<h2>Começando</h2>
+<p>Abra <code>editor.html</code> pelo Live Server. Selecione <strong>Tamanho do mapa</strong>: 40 × 40, 80 × 80, 160 × 160 ou 320 × 320 metros virtuais. O campo <code>size</code> aparece no JSON e é respeitado pelo FPS. O tamanho descreve as dimensões do solo, não o número de objetos nem o desempenho garantido.</p>
+<p>Clique <strong>Enquadrar terreno inteiro</strong> para visualizar a área nova. Crie o mapa, defina início do jogador e os spawns de zumbis. Selecione <strong>Testar no jogo</strong> ou exporte JSON. Faça backup em arquivo, pois o armazenamento do navegador pode ser apagado.</p>
+<h2>Biblioteca 3D original</h2>
+<p>A biblioteca foi ampliada com casas, chalés, casa abandonada, celeiro, barraco, depósito, varanda, cercas de madeira e ferro, cerca branca, portão, lápide, cruz, mausoléu, cripta, caixão, árvore seca, poste, poço, barricada, abóbora e entulho. Esses objetos são <strong>geometrias procedimentais simples</strong>, não modelos PBR realistas. Você pode substituí-los por um modelo GLB original do Blender.</p>
+<h3>Como alterar a aparência de uma casa</h3>
+<ol>
+<li>Insira <strong>Casa</strong> ou <strong>Casa abandonada</strong>.</li>
+<li>Selecione o objeto na hierarquia.</li>
+<li>Modifique <strong>Cor principal</strong>, <strong>Cor do telhado</strong> e <strong>Cor de detalhes</strong> no painel Propriedades.</li>
+<li>Use <strong>G</strong> mover, <strong>R</strong> girar, <strong>S</strong> escalar. Ajuste altura, largura e profundidade.</li>
+<li>Exporte JSON. O objeto salva <code>type</code>, <code>color</code>, <code>roofColor</code>, <code>accentColor</code>, escala e posição.</li>
+</ol>
+<h3>Kits de construção</h3>
+<p><strong>Casa + quintal</strong>, <strong>Cemitério</strong>, <strong>Fazenda</strong> e <strong>Rua de vila</strong> inserem conjuntos de várias peças independentes. Cada peça pode ser selecionada, recolorida, duplicada ou removida. Esses kits são uma maneira rápida de aprender composição e escala de cenários.</p>
+<h2>Exemplos oficiais incluídos</h2>
+<ul>
+<li><code>cemiterio-neblina.json</code> — 80 × 80 m.</li>
+<li><code>vila-sombria.json</code> — 160 × 160 m.</li>
+<li><code>fazenda-crepusculo.json</code> — 160 × 160 m.</li>
+<li><code>bairros-abandonados.json</code> — 320 × 320 m.</li>
+</ul>
+<p>Os novos mapas aparecem no catálogo <code>mapas/index.json</code>. Para adicionar o seu mapa, coloque o JSON em <code>mapas/</code> e crie uma entrada no catálogo. O GitHub Pages serve arquivos estáticos e não enumera a pasta sozinho.</p>
+<h2>JSON de mapa v2</h2>
+<pre><code class="language-json">{
+  &quot;format&quot;:&quot;wmk-zombie-map&quot;,
+  &quot;version&quot;:2,
+  &quot;size&quot;:160,
+  &quot;name&quot;:&quot;Minha Fazenda&quot;,
+  &quot;objects&quot;:[{
+    &quot;id&quot;:&quot;casa_1&quot;, &quot;name&quot;:&quot;Casa central&quot;, &quot;type&quot;:&quot;house&quot;,
+    &quot;x&quot;:5,&quot;y&quot;:2.5,&quot;z&quot;:3,&quot;w&quot;:8,&quot;h&quot;:5,&quot;d&quot;:7,
+    &quot;ry&quot;:0,&quot;color&quot;:&quot;#b7a08c&quot;, &quot;roofColor&quot;:&quot;#6c3e35&quot;,
+    &quot;accentColor&quot;:&quot;#493c32&quot;,&quot;solid&quot;:true
+  }]
+}
+</code></pre>
+<p>Mapas antigos, sem <code>size</code>, continuam com dimensão padrão de 40 × 40 m. O novo limite de importação é de 1.200 objetos, mas <strong>isso não significa que 1.200 objetos terão boa performance</strong>. Prefira menos objetos e otimize modelos e texturas.</p>
+<h2>Criando modelos mais sofisticados no Blender</h2>
+<ol>
+<li>Configure o projeto em metros e modele o objeto com dimensões coerentes.</li>
+<li>Faça UV Unwrap e materiais PBR autorais, sem copiar assets de jogos comerciais.</li>
+<li>Aplique transformações com Ctrl+A e organize o pivô.</li>
+<li>Exporte como <code>.glb</code>.</li>
+<li>Coloque o arquivo em <code>assets/models/</code> e vincule o caminho no editor.</li>
+<li>Teste a escala, rotação e colisão. Atualmente a colisão de objeto usa caixa retangular simples, mesmo se o GLB tiver aberturas.</li>
+</ol>
+<p><strong>Atenção:</strong> as casas procedimentais dessa versão têm fachada e telhado, mas são <strong>volumes sólidos</strong>, sem interiores acessíveis. Para uma casa explorável, construa paredes, pisos, portas e ambientes separadamente; a física de múltiplos andares requer evolução futura.</p>
+<h2>Limitações técnicas e próximos passos</h2>
+<ul>
+<li>Colisão de caixas com aproximação 2D; não há navegação automática sofisticada, malha de navegação ou suporte completo a pisos sobrepostos.</li>
+<li>O FPS aumenta o chão e limites ao carregar um mapa <code>size=80/160/320</code>. A distância de desenho da névoa também aumenta. Isso não garante que os zumbis consigam atravessar bairros extensos.</li>
+<li>Mapas grandes têm custo de renderização, raycast e atualização de bots. Prefira <code>InstancedMesh</code>, chunks, LOD, frustum culling e occlusion culling como próximos recursos.</li>
+<li>Futuras opções: pisos modulares, portas funcionais, iluminação noturna, sons de ambiente, telhados com vários estilos, janelas quebráveis, vegetação e caminhos para bots.</li>
+</ul>
+<h2>Checklist de publicação</h2>
+<ul>
+<li>[ ] JSON válido e tamanho 40, 80, 160 ou 320.</li>
+<li>[ ] Spawn do jogador sem colisão e pelo menos um spawn válido para zumbis.</li>
+<li>[ ] Caminhos GLB relativos e arquivos dentro da pasta publicada.</li>
+<li>[ ] Catálogo <code>mapas/index.json</code> atualizado.</li>
+<li>[ ] Testar editor e FPS com mapa pequeno e grande, acompanhando F12 e FPS.</li>
+<li>[ ] Exportar e guardar backup dos fontes e mapas antes da publicação na branch <code>main</code>.</li>
+</ul>
+<footer>Walney Moreira Klein — walneyk@hotmail.com</footer></body></html>

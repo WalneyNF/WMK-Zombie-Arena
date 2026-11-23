@@ -1,0 +1,29 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Manual técnico: armas, recarga e áudio — WMK Zombie Arena</title><style>body{background:#0d1515;color:#e8eee9;font:16px/1.75 system-ui,Arial,sans-serif;max-width:1040px;margin:0 auto;padding:28px}h1,h2,h3{color:#a8e47e;line-height:1.3}a{color:#a8e47e}nav{display:flex;gap:16px;flex-wrap:wrap;border-bottom:1px solid #42604f;padding-bottom:14px}nav a{font-size:14px}pre{background:#071111;border:1px solid #365845;border-radius:8px;padding:16px;overflow:auto;font-size:13px;line-height:1.5}code{color:#f0d795}pre code{color:#e3efd7}table{border-collapse:collapse;width:100%;margin:15px 0}td,th{border-bottom:1px solid #344d42;padding:10px;text-align:left}aside{background:#1c3024;border-left:4px solid #9cd57f;padding:16px}li{padding-bottom:5px}.muted{color:#a5b5ad}footer{margin-top:60px;border-top:1px solid #344d42;padding-top:16px;font-size:13px}</style></head><body><nav><a href="../index.html">Jogar</a><a href="../editor.html">Editor</a><a href="../roadmap.html">Roadmap</a><a href="usuario.html">Jogadores</a><a href="audio-armas.html">Áudio e armas</a><a href="multiplayer.html">Multiplayer</a><a href="contribuir.html">Contribuir</a></nav><header><img src="../assets/logo.svg" alt="WMK Zombie Arena" width="400"></header><h1>Manual técnico: armas, recarga e áudio</h1><p class="muted">Documentação v1.8.1 • Código MIT • 22/11/2026</p>
+<aside>Esta versão usa efeitos procedurais gerados pelo Web Audio API. São sonorizações de jogo, não reproduções de gravações comerciais. O áudio só inicia após clicar em Iniciar, conforme as restrições do navegador.</aside>
+<h2>1. Onde editar cada parte</h2><table><tr><th>Arquivo</th><th>Responsabilidade</th></tr><tr><td>weapons.js</td><td>Cadastro, dano fictício, preço, slot, munição, recarga, cadência, dispersão, skins</td></tr><tr><td>game.js</td><td>Raycast, animação, inventário, inputs, gerenciamento de jogo e gatilhos de som</td></tr><tr><td>audio.js</td><td>Perfis de som, efeitos procedurais, volume, samples opcionais e cache</td></tr><tr><td>index.html / style.css</td><td>HUD, menu, controles e estilos</td></tr></table>
+<h2>2. Criar uma arma</h2><p>Abra <code>weapons.js</code> e insira uma nova entrada em <code>WEAPONS</code>, utilizando a função auxiliar <code>gun(...)</code> já existente. Exemplo de pistola fictícia:</p>
+<pre><code>treino: gun('WMK Treino','pistol','secondary',450,
+  18,108,24,.19,1.4,.008,.28,
+  {type:'semiauto',headMultiplier:1.8,color:0x506c58}),</code></pre>
+<p>Propriedades: <code>magazine</code> é capacidade; <code>reserve</code> é a reserva; <code>damage</code> é dano abstrato; <code>cooldown</code> é intervalo em segundos; <code>reload</code> é duração da recarga; <code>spread</code> é dispersão; <code>movementSpread</code> aumenta dispersão ao caminhar; <code>pellets</code> representa múltiplos raios para escopetas; <code>slot</code> define principal, secundária ou faca; <code>type</code> distingue semiautomático e automático. O menu gera as opções a partir de <code>WEAPONS</code>.</p>
+<h2>3. Dando sons próprios à arma</h2><p>Você pode adicionar uma propriedade <code>audio</code> a qualquer arma após a criação. Use arquivos próprios ou com licença compatível, salvos sob <code>assets/audio/</code>:</p>
+<pre><code>WEAPONS.treino.audio = {
+  shot: 'assets/audio/treino-tiro.ogg',
+  reload: 'assets/audio/treino-recarga.ogg'
+};</code></pre>
+<p>Se o som não carregar, o motor usa o efeito sintético padrão. Os formatos aceitos na configuração são <code>ogg</code>, <code>mp3</code> e <code>wav</code>; o suporte de reprodução varia conforme o navegador. Nunca aponte para endereços externos não confiáveis ou copie áudio de jogos comerciais sem licença.</p>
+<h2>4. Integração de áudio no jogo</h2><pre><code>import { gameAudio } from './audio.js';
+// Após ação explícita do usuário (botão INICIAR):
+gameAudio.unlock();
+// No disparo validado:
+gameAudio.shot(currentWeapon());
+// Ao iniciar uma recarga:
+gameAudio.reload(currentWeapon());
+// Quando a animação/temporizador de recarga termina:
+gameAudio.reloadComplete();
+// Zumbi próximo:
+gameAudio.zombie(distanciaAteJogador);</code></pre>
+<p>O volume mestre e o estado ligado/desligado ficam em <code>localStorage</code> sob <code>wmk_zombie_audio_v1</code>. Os sons dos zumbis têm limitação de frequência para evitar dezenas de vozes simultâneas e consumo excessivo de CPU.</p>
+<h2>5. Como testar</h2><ol><li>Abra o jogo em HTTP local, clique Iniciar e permita o mouse.</li><li>Atire usando pistola, AWP e escopeta; compare timbres.</li><li>Use R para recarregar; teste pente cheio, pente vazio e troca durante a recarga.</li><li>Espere os zumbis se aproximarem; confirme ruídos e dano sonoro.</li><li>Desative áudio e confira que o jogo continua funcionando.</li><li>No Console (F12), confirme que não há falhas de importação nem arquivos de áudio ausentes.</li></ol>
+<h2>6. Próximas melhorias</h2><p>AudioListener/PositionalAudio com Three.js, efeitos de ambiente por mapa, atenuação espacial por paredes, passos por material, biblioteca de sons gravados licenciados, mix por categoria e controle de latência para multiplayer.</p>
+<footer>Walney Moreira Klein — <a href="mailto:walneyk@hotmail.com">walneyk@hotmail.com</a> • <a href="../LICENSE">Licença MIT</a></footer></body></html>

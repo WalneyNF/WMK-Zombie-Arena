@@ -1,0 +1,10 @@
+/* WMK Workspace: barras de controle não cobrem os painéis, canvas preenche o espaço. */
+.wmk-floating{position:fixed!important;z-index:30;min-width:220px;min-height:140px;resize:both;overflow:auto;background:rgba(13,26,26,.96);border:1px solid #628f73;border-radius:9px;box-shadow:0 12px 32px #000a;max-width:none;max-height:none}
+.wmk-floating[hidden]{display:none!important}
+.wmk-panel-head,.wmk-floating .panelHead{display:flex;align-items:center;justify-content:space-between;gap:6px;background:#244a3e;color:#dbf7c8;font-weight:700;padding:10px;cursor:move;user-select:none;touch-action:none;position:sticky;top:0;z-index:2}
+.wmk-close{background:#4e3536!important;color:white!important;border:0!important;cursor:pointer;font-size:19px;line-height:1;padding:2px 8px;border-radius:4px}
+.wmk-workspace-bar{position:fixed;z-index:40;top:0;left:0;right:0;min-height:46px;display:flex;align-items:center;flex-wrap:nowrap;overflow-x:auto;gap:6px;padding:6px 9px;background:#0d211e;border-bottom:1px solid #477360;scrollbar-width:thin}
+.wmk-workspace-bar button{white-space:nowrap;padding:6px 9px;background:#315347;color:#e9ffe9;border:1px solid #58856b;border-radius:5px;cursor:pointer;font-size:12px}
+.wmk-workspace-bar .off{opacity:.55;text-decoration:line-through}
+.wmk-workspace-bar .wmk-layout-name,.wmk-workspace-bar .wmk-layout-list{min-width:120px;max-width:190px;width:145px;margin:0;padding:6px;border-radius:4px;background:#132e2b;color:white;border:1px solid #527963;font-size:12px}
+.wmk-hint{position:fixed;z-index:8;bottom:8px;left:50%;transform:translateX(-50%);pointer-events:none;background:#0c1819dd;padding:7px 13px;border-radius:6px;color:#baddba;font:12px system-ui;text-align:center}

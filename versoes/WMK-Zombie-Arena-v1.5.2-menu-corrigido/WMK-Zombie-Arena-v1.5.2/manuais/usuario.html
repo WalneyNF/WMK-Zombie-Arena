@@ -1,0 +1,130 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>WMK - usuario</title><style>body{max-width:1000px;margin:auto;padding:24px;font:16px/1.65 system-ui;background:#0e1916;color:#e4eee3}h1,h2,h3{color:#b6ef8c}a{color:#c4e79a}table{border-collapse:collapse;width:100%;display:block;overflow-x:auto}th,td{padding:8px 12px;border:1px solid #44604a;text-align:left}pre{overflow-x:auto;background:#1c2823;padding:14px;border-radius:8px}code{background:#26382e;padding:2px 5px}nav{display:flex;flex-wrap:wrap;gap:14px;border-bottom:1px solid #536651;padding-bottom:12px}blockquote{border-left:3px solid #a2d889;padding-left:14px}img{max-width:100%}</style></head><body><nav><a href="../index.html">Jogo</a><a href="../editor.html">Editor</a><a href="../roadmap.html">Roadmap</a><a href="usuario.html">Jogador</a><a href="desenvolvedor.html">Desenvolvedor</a><a href="editor-mapas.html">Editor</a><a href="mecanicas.html">Mecânicas</a><a href="pesquisa-fps.html">Pesquisa</a><a href="arsenal-skins.html">Arsenal e skins</a></nav><h1>Manual do jogador — WMK Zombie Arena</h1>
+<p><strong>Versão:</strong> jogo 1.2.0 / documentação 1.3.0<br />
+<strong>Autor:</strong> Walney Moreira Klein — walneyk@hotmail.com</p>
+<h2>1. O que é o jogo?</h2>
+<p>É um FPS (First-Person Shooter) 3D de sobrevivência. A câmera representa a visão do personagem. Você deve sobreviver a ondas de zumbis, administrar munição, escolher armas e usar coberturas. Não é um modo competitivo com equipes nem um clone integral de CS:GO.</p>
+<h2>2. Como instalar e abrir</h2>
+<ol>
+<li>Descompacte os arquivos em uma pasta, mantendo <code>index.html</code>, <code>style.css</code>, <code>game.js</code> e <code>weapons.js</code> juntos.</li>
+<li>Abra no Visual Studio Code.</li>
+<li>Instale a extensão Live Server, clique com o botão direito no <code>index.html</code> e selecione <strong>Open with Live Server</strong>.</li>
+<li>Alternativamente, no terminal, execute <code>py -m http.server 5500</code> e abra <code>http://localhost:5500</code>.</li>
+<li>Conecte-se à internet para carregar Three.js, caso não esteja em cache.</li>
+</ol>
+<p>Se aparecer uma tela em branco, abra F12 &gt; Console e confira o carregamento dos módulos e CDN. Se o mouse não travar, clique novamente em iniciar.</p>
+<h2>3. Comandos</h2>
+<table>
+<thead>
+<tr>
+  <th>Tecla</th>
+  <th>Resultado</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>W/S</td>
+  <td>Avançar/recuar</td>
+</tr>
+<tr>
+  <td>A/D</td>
+  <td>Mover lateralmente</td>
+</tr>
+<tr>
+  <td>Mouse</td>
+  <td>Mover a mira</td>
+</tr>
+<tr>
+  <td>Botão esquerdo</td>
+  <td>Disparo</td>
+</tr>
+<tr>
+  <td>R</td>
+  <td>Recarregar o pente</td>
+</tr>
+<tr>
+  <td>1,2,3,4,5</td>
+  <td>Selecionar uma arma</td>
+</tr>
+<tr>
+  <td>B</td>
+  <td>Mostrar seleção de armas</td>
+</tr>
+<tr>
+  <td>Shift</td>
+  <td>Correr</td>
+</tr>
+<tr>
+  <td>C ou Ctrl</td>
+  <td>Agachar</td>
+</tr>
+<tr>
+  <td>Espaço</td>
+  <td>Saltar</td>
+</tr>
+<tr>
+  <td>Esc</td>
+  <td>Liberar o cursor e pausar</td>
+</tr>
+</tbody>
+</table>
+<h2>4. Objetivo, progressão e pontos</h2>
+<p>Ao começar, os zumbis aparecem na arena. Elimine todos os inimigos restantes da onda para liberar a seguinte. Cada eliminação atribui pontos; no código atual o valor base é 100. A quantidade total da onda cresce progressivamente, com limite interno; a vida do jogador recebe reposição parcial entre ondas. Se sua vida chegar a zero, a partida termina. Não há campanha ou fases narrativas.</p>
+<h2>5. Armas e uso recomendado</h2>
+<table>
+<thead>
+<tr>
+  <th>Arma</th>
+  <th style="text-align:right">Pente</th>
+  <th style="text-align:right">Dano base por projétil</th>
+  <th>Perfil</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>Pistola 9 mm</td>
+  <td style="text-align:right">15</td>
+  <td style="text-align:right">28</td>
+  <td>Disparo individual, controle simples</td>
+</tr>
+<tr>
+  <td>Submetralhadora</td>
+  <td style="text-align:right">35</td>
+  <td style="text-align:right">16</td>
+  <td>Automática, maior dispersão</td>
+</tr>
+<tr>
+  <td>Rifle de assalto</td>
+  <td style="text-align:right">30</td>
+  <td style="text-align:right">34</td>
+  <td>Automática, versátil</td>
+</tr>
+<tr>
+  <td>Escopeta</td>
+  <td style="text-align:right">8</td>
+  <td style="text-align:right">13 × 9 fragmentos</td>
+  <td>Dano concentrado de perto, grande espalhamento</td>
+</tr>
+<tr>
+  <td>Rifle de precisão</td>
+  <td style="text-align:right">5</td>
+  <td style="text-align:right">115</td>
+  <td>Alto dano por tiro, tiro lento</td>
+</tr>
+</tbody>
+</table>
+<p>O dano efetivo depende de acerto, multiplicadores e lógica de cada alvo. O jogo não tenta reproduzir uma arma real.</p>
+<h2>6. Estratégias para iniciantes</h2>
+<p>Evite ficar encurralado; gire em torno das caixas e estruturas; aproveite distâncias maiores para recarregar; observe o contador de zumbis; experimente o rifle antes da escopeta para aprender mira. Em armas automáticas, controlar a duração do clique ajuda a gastar menos munição.</p>
+<h2>7. Mapas</h2>
+<p><strong>Pátio de Contêineres:</strong> blocos grandes que quebram linhas de visão. <strong>Depósito:</strong> pilhas de volumes e caminhos entre coberturas. <strong>Ruas:</strong> edifícios e corredores geométricos. São cenários procedurais simplificados, não reproduções de mapas comerciais.</p>
+<h2>8. Solução de problemas</h2>
+<ul>
+<li><strong>Tela preta/branca:</strong> cheque F12/Console e conexão à internet.</li>
+<li><strong>Clique não gira câmera:</strong> o navegador precisa autorizar o bloqueio do ponteiro (<em>Pointer Lock</em>).</li>
+<li><strong>Mudança em arma não aparece:</strong> salve <code>weapons.js</code> e atualize com Ctrl+F5.</li>
+<li><strong>Zumbi preso:</strong> limitação da IA atual sem navegação de malha (<em>navmesh</em>).</li>
+<li><strong>Jogo lento:</strong> feche outras abas e reduza resolução do monitor; otimizações de qualidade configuráveis são futuras.</li>
+</ul>
+<h2>9. Vocabulário</h2>
+<p><strong>FPS:</strong> tiro em primeira pessoa. <strong>HUD:</strong> indicadores na tela. <strong>Hitscan:</strong> acerto calculado por raio instantâneo. <strong>Pente/magazine:</strong> capacidade carregada. <strong>Reserve:</strong> munição extra. <strong>Spread:</strong> desvio da direção do tiro. <strong>Cooldown:</strong> intervalo mínimo entre disparos. <strong>Wave/onda:</strong> grupo sequencial de zumbis.</p>
+<footer>Walney Moreira Klein — walneyk@hotmail.com</footer></body></html>

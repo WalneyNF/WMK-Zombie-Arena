@@ -1,0 +1,15 @@
+WMK Zombie Arena v2.0.0-RC4 — publicação do jogo completo
+
+Este pacote traz o FPS e os editores atualizados da RC3 e integra acessos a Cidade Viva, Loja W$ e backup JSON.
+
+ATENÇÃO: Cidade Viva, Loja e Backup estão na branch main do fork, mas seus módulos não estão duplicados neste ZIP. O PUBLICAR-GITHUB.bat clona o repositorio main e copia os arquivos da RC4 por cima, mantendo aqueles módulos, para gerar a versão integrada publicada.
+
+Passos no Windows:
+1) Instale Git for Windows, se necessário, e entre na sua conta GitHub.
+2) Extraia todo o ZIP em uma pasta.
+3) Clique em PUBLICAR-GITHUB.bat.
+4) Aguarde a confirmação de push e verifique Actions > pages.
+5) Acesse https://walneynf.github.io/WMK-Zombie-Arena/ e force Ctrl+F5.
+
+NÃO é possível garantir a publicação até o push e o deploy terem terminado.
+Autor: Walney Moreira Klein — walneyk@hotmail.com

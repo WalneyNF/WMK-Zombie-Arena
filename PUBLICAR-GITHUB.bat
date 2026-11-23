@@ -1,70 +1,59 @@
-﻿@echo off
+@echo off
 setlocal EnableExtensions
 chcp 65001 >nul
 cd /d "%~dp0"
-title WMK Zombie Arena - Publicar jogo completo v1.7.1
+title WMK Zombie Arena - Publicar v2.0.0-RC4
 
-echo ===============================================================
-echo   WMK ZOMBIE ARENA - PUBLICACAO DO JOGO COMPLETO v1.7.1
-echo   Walney Moreira Klein - walneyk@hotmail.com
-echo ===============================================================
+echo ==========================================================
+echo WMK ZOMBIE ARENA - PUBLICADOR v2.0.0-RC4
+ echo Autor: Walney Moreira Klein - walneyk@hotmail.com
+echo ==========================================================
 echo.
 where git >nul 2>nul
-if errorlevel 1 (
- echo [ERRO] Git nao instalado ou nao esta no PATH.
- echo Instale em https://git-scm.com/downloads/win
- goto :falha
+if errorlevel 1 (echo ERRO: Git nao encontrado. Instale git-scm.com & goto :fail)
+for %%F in (index.html game.js editor.js style.css version.json) do (
+  if not exist "%%F" (echo ERRO: arquivo ausente %%F & goto :fail)
 )
-for %%F in (index.html game.js style.css weapons.js editor.html editor.js editor.css marketplace.html marketplace.js marketplace.css map-library.js mapas\index.json assets\logo.svg) do (
- if not exist "%%F" (
-   echo [ERRO] Arquivo obrigatorio ausente: %%F
-   goto :falha
- )
-)
-set "DEST=%TEMP%\WMK-Zombie-Arena-Publicar-%RANDOM%-%RANDOM%"
-echo [1/5] Clonando projeto oficial...
-git clone --branch main --single-branch "https://github.com/WalneyNF/WMK-Zombie-Arena.git" "%DEST%"
-if errorlevel 1 goto :falha
-
-echo [2/5] Copiando jogo, editor, mapas, prefabs e manuais...
+set "DEST=%TEMP%\WMK-Zombie-Arena-RC4-%RANDOM%-%RANDOM%"
+echo [1/5] Clonando main para uma pasta TEMPORARIA...
+git clone -b main --single-branch https://github.com/WalneyNF/WMK-Zombie-Arena.git "%DEST%"
+if errorlevel 1 goto :fail
+echo [2/5] Consolidando RC4 sem apagar Cidade Viva, Loja e Backup presentes na main...
 robocopy "%~dp0" "%DEST%" /E /XD .git /XF PUBLICAR-GITHUB.bat >nul
-if errorlevel 8 goto :falha
-
+if errorlevel 8 goto :fail
 pushd "%DEST%"
-echo [3/5] Preparando commit...
-git add -A
-if errorlevel 1 goto :falhapop
-git diff --cached --quiet
+echo [3/5] Verificando JavaScript e JSON...
+where node >nul 2>nul
 if not errorlevel 1 (
- echo [INFO] Nenhuma alteracao. Arquivos ja estao atualizados.
- goto :okpop
+  for %%F in (game.js editor.js zombie-studio.js avatar-studio.js) do (
+    node --check "%%F"
+    if errorlevel 1 goto :failpop
+  )
 )
-git commit -m "release: publica WMK Zombie Arena completo v1.7.1"
-if errorlevel 1 goto :falhapop
-
-echo [4/5] Enviando todos os arquivos ao GitHub...
+where py >nul 2>nul
+if not errorlevel 1 (py -m json.tool version.json >nul & if errorlevel 1 goto :failpop)
+echo [4/5] Criando commit com fontes completos...
+git add -A
+if errorlevel 1 goto :failpop
+git diff --cached --quiet
+if not errorlevel 1 goto :okpop
+git commit -m "release: WMK Zombie Arena v2.0.0-RC4 consolidado"
+if errorlevel 1 goto :failpop
+echo [5/5] Enviando para GitHub main...
 git push origin main
-if errorlevel 1 goto :falhapop
-
+if errorlevel 1 goto :failpop
 :okpop
 popd
-echo [5/5] Publicacao de arquivos concluida.
 echo.
-echo IMPORTANTE: no GitHub abra Settings ^> Pages.
-echo Selecione Source: GitHub Actions para usar o workflow do projeto.
-echo Depois verifique: https://github.com/WalneyNF/WMK-Zombie-Arena/actions
-echo Site: https://walneynf.github.io/WMK-Zombie-Arena/
-echo.
-echo [OK] A demonstracao foi substituida pelos arquivos completos na main.
-echo A entrada no ar depende do deploy do GitHub Pages terminar com sucesso.
+echo [OK] GitHub atualizado. Acompanhe o deploy do Pages:
 start "" "https://github.com/WalneyNF/WMK-Zombie-Arena/actions"
+echo Site: https://walneynf.github.io/WMK-Zombie-Arena/
 pause
 exit /b 0
-:falhapop
+:failpop
 popd
-:falha
+:fail
 echo.
-echo [FALHA] Nada foi declarado como publicado.
-echo Verifique os erros acima. Git pode solicitar autenticacao no navegador.
+echo [FALHA] PUBLICACAO NAO CONCLUIDA. Verifique os erros acima.
 pause
 exit /b 1

@@ -1,0 +1,33 @@
+WMK Zombie Arena RC4 - Relatorio de publicacao
+Data: 23/11/2026  1:47:54,95
+Cloning into 'D:\temp\WMK-Zombie-Arena-CHECK-4093-22427'...
+
+-------------------------------------------------------------------------------
+   ROBOCOPY     ::     Robust File Copy para Windows                              
+-------------------------------------------------------------------------------
+
+  Iniciado: segunda-feira, 23 de novembro de 2026 01:47:59
+   Origem = D:\xampp2\htdocs\WMK Zombie Arena\versoes\WMK-Zombie-Arena-v2.0.0-RC4-PUBLICADOR-VERIFICADO" D:\temp\WMK-Zombie-Arena-CHECK-4093-22427 \E \XD .git \XF PUBLICAR-GITHUB.bat RELATORIO-PUBLICACAO.txt\
+     Dest - 
+
+    Arquivos: *.*
+	    
+  Opções: *.* /DCOPY:DA /COPY:DAT /R:1000000 /W:30 
+
+------------------------------------------------------------------------------
+
+ERRO: Nenhum Diretório de Destino Especificado.
+
+              Uso Simples :: ROBOCOPY origem destino /MIR
+
+                   origem :: Diretório de Origem (unidade:\caminho ou
+                             \\servidor\compartilhamento\caminho).
+                  destino :: Diretório de Destino  (unidade:\caminho ou
+                             \\servidor\compartilhamento\caminho).
+                     /MIR :: espelhar uma árvore de diretório completa.
+
+    Para obter mais informações sobre uso, execute ROBOCOPY /?
+
+                                                          
+****  /MIR pode EXCLUIR arquivos e também copiá-los!
+FALHA de publicacao.

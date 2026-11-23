@@ -1,6 +1,50 @@
-> **PUBLICAÇÃO E FONTES:** `main` é a versão estável destinada ao GitHub Pages; `develop` é a branch de desenvolvimento. Para criar ZIPs versionados com o código-fonte, envie uma tag `vX.Y.Z`: o GitHub Actions gera um Release automaticamente. **[Manual completo de atualização e publicação](manuais/publicacao-versoes.html)**. Uma versão criada fora do repositório só passa a valer quando seus arquivos são enviados ao GitHub.\n\n> **v1.7.0 — pacote local:** arena Fábrica Horizonte, luneta AWP, editor com modelos GLB e prefabs. É necessário publicar a versão completa para atualizar o GitHub Pages.
+> **v2.0.0-RC4 — PACOTE DE CONSOLIDAÇÃO (TESTES):** FPS/editores v2.0-RC3 com links para Cidade Viva, Loja W$, Backup JSON e ganhos W$ por inimigo eliminado. Para publicar, rode `PUBLICAR-GITHUB.bat` com Git instalado, pois este ambiente não conseguiu enviar os arquivos locais completos diretamente ao GitHub. O publicador mescla com a `main`, preservando os módulos da Cidade Viva e da loja que já estão no fork. Não confundir GitHub atualizado com teste no navegador concluído.
 
-> 🏙 **NOVO EM DESENVOLVIMENTO — WMK CIDADE VIVA CV-01:** [Abrir protótipo Bairro Zero 3D](cidade-viva.html) · [Roadmap completo](roadmap.html). O protótipo possui ruas, casas e trânsito experimental. Ainda não está integrado ao FPS principal nem à main/Pages.\n\n> **v1.7.0 — pacote local:** arena Fábrica Horizonte, luneta AWP, editor com modelos GLB e prefabs. É necessário publicar a versão completa para atualizar o GitHub Pages.
+> **v2.0.0-rc1 — CANDIDATA LOCAL:** Menu e finalização separados, captura de mouse com erro tratado e botões Zombie/Skin Studio. Ainda não publicada no GitHub Pages. [Plano de validação](manuais/validacao-v2.html).
+
+## v1.9.5 — Bots e zumbis personalizados na Operação Bomba
+
+Selecione 3, 5 ou 7 aliados e inimigos, e escolha defensor tático, tipo de zumbi específico criado no Zombie Studio ou uma mistura de todos. A vida, velocidade e dano de zumbis personalizados são preservados. Consulte [Manual de inimigos da Operação Bomba](manuais/operacao-bomba-inimigos.html). Esta versão está no ZIP local e **não foi publicada automaticamente no GitHub Pages**.
+
+> **v1.9.4 — Academia FPS:** treino com número finito de alvos, sem renascimento automático. Ao eliminar todos, abre relatório com precisão, disparos, headshots, tempo, ritmo e botões Reiniciar/Voltar ao menu. [Manual](manuais/academia-resultado-final.html).
+
+## v1.9.3 — Equipes, miras e avatares (protótipo offline)
+
+- Operação Bomba: escolher independentemente 3, 5 ou 7 bots aliados e inimigos; o jogador é um atacante extra.
+- Miras por arma: formato, cor, tamanho, espessura e preferência dinâmica (a preferência visual está salva; a interação precisa com dispersão requer calibração adicional).
+- Avatar Studio: criar perfis de cores de personagem 3D geométrico, importar/exportar JSON e visualizar no modo TPS.
+- Documentação: `manuais/fps-classicos-modernizacao.html` e `manuais/bots-miras-avatares.html`.
+- Não inclui multiplayer real, editor de vértices, rigs, mapas copiados nem personagens comerciais.
+
+> **v1.9.2 (prévia local):** pausa isolada por modo, menu principal separado, bots aliados e defensores no modo bomba, temporizador de tiro corrigido; ainda não há multiplayer em rede. Fonte completo incluído.
+
+> **v1.9.1 (local):** Menu de pausa independente para Sobrevivência, Academia e Operação Bomba; bots 5×5 offline; manual de multiplayer. O jogo online real ainda precisa de servidor.
+
+> **v1.9.0 — correção dos modos:** seleção por cartões independentes na tela inicial; Academia FPS agora inicializa com qualquer distância, inclusive mistas (5, 10, 20, 30 m). Corrigido `TypeError: distances is not iterable`.
+
+> **v1.8.9 — corrigido treinamento e alternância FPS/TPS:** escolha Academia de mira, configure distância/exercício e clique em **INICIAR TREINAMENTO**. Durante o jogo, pressione **P** para alternar primeira e terceira pessoa; role o mouse na terceira pessoa para aproximar/afastar. A visualização TPS é experimental, com personagem geométrico provisório e disparo calculado da posição FPS.
+
+> **Correção v1.8.8:** seletor de modo altera o botão para INICIAR TREINAMENTO, treinamento abre com as opções escolhidas, painel de desempenho e respawn de alvos tolerante a pausa. Esta versão ZIP não substitui a publicada no GitHub até ser enviada à branch de implantação.
+
+> **v1.8.6 — Zombie Studio:** novo editor para criar/duplicar zumbis, configurar boss e atribuir vários tipos aos pontos de spawn de cada mapa. A publicação no GitHub não é automática.
+
+> **v1.8.4 — Workspace 3D:** Arsenal Studio com canvas amplo, painéis móveis/redimensionáveis, layouts nomeados, gizmos, snap e navegação inspirada no Blender. Editor de mapas com ajustes de painéis, salvamento de alturas e voo livre. Veja [manual HTML](manuais/workspace-3d.html).
+
+# WMK Zombie Arena — v1.8.3 (Arsenal Studio + bazuca)
+
+Esta versão adiciona um editor local de armas comunitárias, com exemplo de bazuca fictícia, projétil 3D, dano em área e cadastro automático no menu B → 9. **O modelo GLB precisa ser colocado em assets/models/ e publicado junto; somente o JSON não carrega o modelo.**
+
+Inicie com Live Server no VS Code, abra `arsenal.html` para editar, clique Salvar no jogo e recarregue `index.html`. Os dados ficam no localStorage da mesma origem. A versão online do GitHub Pages só mudará após publicação desses arquivos.
+
+Leia [Manual Arsenal Studio](manuais/arsenal-studio.html) para aprender a editar parâmetros, importar GLB do Blender e testar a arma. Créditos: Walney Moreira Klein — walneyk@hotmail.com.
+
+---
+
+> **v1.8.2 — Áudio e documentação para comunidade:** sons procedurais para armas, recarga, zumbis, dano, granadas e zoom; controle de volume; arquivos de áudio próprios opcionais. **Multiplayer 5x5 permanece planejado e NÃO está jogável.** Consulte [jogador (áudio)](manuais/usuario-audio.html), [armas e áudio](manuais/audio-armas.html), [multiplayer](manuais/multiplayer.html) e [contribuição](manuais/contribuir.html).
+
+> **v1.8.0 — Atualização incremental:** Editor com painel de três colunas, atalhos semelhantes ao Blender, snap, layouts nomeados, kits rápidos, 4 novos mapas oficiais, granada HE e fumaça visual. Veja [manual do editor](manuais/editor-avancado-v180.html), [mecânicas](manuais/mecanicas-v180.html) e [pesquisa](manuais/pesquisa-fps-v180.html). O multiplayer, física de andares e obstrução de visão pela fumaça ainda não estão implementados.
+
+> **v1.7.0 — pacote local:** arena Fábrica Horizonte, luneta AWP, editor com modelos GLB e prefabs. É necessário publicar a versão completa para atualizar o GitHub Pages.
 
 <p align="center"><img src="assets/logo.svg" width="720" alt="WMK Zombie Arena — logo oficial"></p>
 
@@ -8,7 +52,7 @@
 
 **FPS 3D de sobrevivência contra zumbis, desenvolvido com HTML, CSS, JavaScript e Three.js.** Projeto autoral e educacional, inspirado em mecânicas genéricas de FPS táticos e sobrevivência, sem utilizar marcas, mapas ou recursos protegidos de outros jogos.
 
-**Versão do jogo:** 1.2.0 · **Versão da documentação e identidade visual:** 1.3.0 · **Estado:** protótipo didático.
+**Versão do pacote:** 1.8.1 · **Áudio e documentação:** 1.8.1 · **Estado:** protótipo didático.
 
 **Autor:** Walney Moreira Klein — [walneyk@hotmail.com](mailto:walneyk@hotmail.com)
 
@@ -146,3 +190,31 @@ Extraia o pacote e execute `PUBLICAR-GITHUB.bat` na pasta do projeto. Ele **clon
 - Documentos HTML: `manuais/blender-prefabs.html` e `manuais/referencia-awp.html`.
 
 - AWP WMK inclui modelo 3D original em `assets/models/wmk-precision-awp.glb` (visualização em primeira pessoa).
+
+
+## Zombie Studio v1.8.6
+Abra `zombie-studio.html` para criar e duplicar tipos de zumbis com atributos, cor e caminho GLB. No `editor.html`, clique no spawn e selecione vários tipos, quantidade relativa, peso e onda mínima. O jogo usa os dados locais da mesma origem. Veja `manuais/zombie-studio.html`.
+
+
+## Academia de FPS v1.8.7
+No modo **Academia de mira**, configure alvos perto (5/10 m), médios (20 m) ou longe (30 m), ou misture distâncias. Exercícios: precisão, alvos móveis, headshot e rajadas. Consulte [Manual da Academia](manuais/academia-fps.html).
+
+
+## v1.9.6 — Mapas maiores e cenários de terror leve
+
+- Terrenos 40/80/160/320 m exportados com `size` no JSON e respeitados pelo FPS.
+- 22 objetos com visualização 3D autoral e edição de cores de fachada, telhado e detalhes.
+- Kits: casa com quintal, cemitério, fazenda e rua de vila.
+- 4 mapas originais e manual `manuais/mapas-grandes-terror.html`.
+- Casas atuais são cenários exteriores sólidos; interiores transitáveis e navmesh são melhorias futuras.
+- Para jogar via GitHub Pages é necessário publicar os arquivos e atualizar `mapas/index.json`.
+
+
+## v2.0.0-RC2 — Correção do avatar
+
+Ajustadas as posições da cabeça, pescoço e capacete no Avatar Studio **e no personagem TPS do jogo**. O pescoço agora encontra o topo do tronco sem intervalo. Nenhum JSON de cores existente precisa ser alterado. Para testar: abra `avatar-studio.html`, gire o modelo e verifique a junção; volte ao FPS, selecione terceira pessoa com `P` e confira o avatar.
+
+
+## v2.0.0-RC4 — Zoom 3D consistente
+
+Os quatro estúdios (Mapas, Arsenal, Zumbis e Avatar) possuem painel flutuante de zoom percentual, botões IN/OUT, Ajustar, distância em unidades e posição salva. [Manual do Zoom 3D](manuais/zoom-3d.html). A roda utiliza o OrbitControls e os limites variam com o tamanho do mapa.

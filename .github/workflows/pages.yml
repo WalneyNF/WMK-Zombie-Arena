@@ -27,6 +27,11 @@ jobs:
           node --check game.js
           node --check editor.js
           node --check marketplace.js
+          node --check avatar-studio.js
+          node --check zombie-studio.js
+          node --check zoom-controls.js
+          test -s "version.json"
+          python3 -m json.tool version.json > /dev/null
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

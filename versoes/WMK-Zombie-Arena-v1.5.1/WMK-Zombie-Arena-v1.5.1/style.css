@@ -1,0 +1,338 @@
+* { box-sizing: border-box; }
+
+    html, body, #game {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+    }
+
+    body {
+      background: #171b1b;
+      color: #f3f2e8;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    #game canvas {
+      display: block;
+    }
+
+    #hud {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 3;
+      pointer-events: none;
+    }
+
+    body.in-game #hud {
+      display: block;
+    }
+
+    .hud-panel {
+      position: absolute;
+      padding: 12px 16px;
+      background: rgba(10, 15, 15, 0.74);
+      border: 1px solid rgba(225, 230, 215, 0.24);
+      box-shadow: 0 5px 22px rgba(0, 0, 0, 0.2);
+      backdrop-filter: blur(5px);
+      text-shadow: 0 1px 3px #000;
+    }
+
+    .top-left {
+      top: 20px;
+      left: 20px;
+      min-width: 230px;
+    }
+
+    .top-right {
+      top: 20px;
+      right: 20px;
+      text-align: right;
+    }
+
+    .bottom-left {
+      left: 20px;
+      bottom: 20px;
+      width: 225px;
+    }
+
+    .bottom-right {
+      right: 20px;
+      bottom: 20px;
+      min-width: 190px;
+      text-align: right;
+    }
+
+    .eyebrow {
+      color: #c5b879;
+      font-size: 10px;
+      font-weight: bold;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    .objective {
+      margin-top: 7px;
+      font-size: 13px;
+      letter-spacing: 0.5px;
+    }
+
+    .stat-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 12px;
+      letter-spacing: 1px;
+    }
+
+    .stat-row strong {
+      font-size: 20px;
+      letter-spacing: 0;
+    }
+
+    .health-track {
+      height: 7px;
+      margin-top: 8px;
+      overflow: hidden;
+      background: rgba(255, 255, 255, 0.16);
+    }
+
+    #healthFill {
+      display: block;
+      width: 100%;
+      height: 100%;
+      background: #9cbd72;
+      transition: width 0.15s, background 0.15s;
+    }
+
+    .weapon-name {
+      color: #c5b879;
+      font-size: 10px;
+      font-weight: bold;
+      letter-spacing: 2px;
+    }
+
+    #ammoText {
+      margin-top: 4px;
+      font-size: 22px;
+      font-weight: bold;
+      letter-spacing: 1px;
+    }
+
+    .ammo-caption {
+      margin-top: 3px;
+      color: #c6c8bc;
+      font-size: 10px;
+      letter-spacing: 1px;
+    }
+
+    #crosshair {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 20px;
+      height: 20px;
+      transform: translate(-50%, -50%);
+    }
+
+    #crosshair span {
+      position: absolute;
+      display: block;
+      background: #f4f2de;
+      border: 1px solid rgba(0, 0, 0, 0.7);
+      box-shadow: 0 0 2px #000;
+    }
+
+    #crosshair .up,
+    #crosshair .down {
+      left: 9px;
+      width: 2px;
+      height: 6px;
+    }
+
+    #crosshair .up { top: 0; }
+    #crosshair .down { bottom: 0; }
+
+    #crosshair .left,
+    #crosshair .right {
+      top: 9px;
+      width: 6px;
+      height: 2px;
+    }
+
+    #crosshair .left { left: 0; }
+    #crosshair .right { right: 0; }
+
+    #hitmarker {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 25px;
+      height: 25px;
+      transform: translate(-50%, -50%);
+      opacity: 0;
+    }
+
+    #hitmarker.visible {
+      opacity: 1;
+    }
+
+    #hitmarker i {
+      position: absolute;
+      top: 11px;
+      left: 2px;
+      width: 8px;
+      height: 2px;
+      background: white;
+    }
+
+    #hitmarker i:nth-child(1) { transform: rotate(45deg); }
+    #hitmarker i:nth-child(2) { left: 15px; transform: rotate(-45deg); }
+    #hitmarker i:nth-child(3) { top: 4px; transform: rotate(-45deg); }
+    #hitmarker i:nth-child(4) { top: 18px; transform: rotate(45deg); }
+
+    #toast {
+      position: absolute;
+      top: 62%;
+      left: 50%;
+      padding: 8px 14px;
+      color: #f6e7a1;
+      background: rgba(10, 15, 15, 0.72);
+      border: 1px solid rgba(225, 230, 215, 0.2);
+      font-size: 12px;
+      font-weight: bold;
+      letter-spacing: 2px;
+      opacity: 0;
+      transform: translate(-50%, 6px);
+      transition: opacity 0.15s, transform 0.15s;
+    }
+
+    #toast.visible {
+      opacity: 1;
+      transform: translate(-50%, 0);
+    }
+
+    #damageFlash {
+      position: fixed;
+      inset: 0;
+      z-index: 4;
+      pointer-events: none;
+      background: radial-gradient(
+        circle,
+        transparent 38%,
+        rgba(170, 18, 18, 0.6) 100%
+      );
+      opacity: 0;
+    }
+
+    #overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background:
+        linear-gradient(rgba(11, 16, 16, 0.58), rgba(11, 16, 16, 0.82)),
+        radial-gradient(ellipse at center, #58635b 0%, #202727 75%);
+    }
+
+    #overlay.hidden {
+      display: none;
+    }
+
+    .card {
+      width: min(600px, 100%);
+      padding: 34px;
+      background: rgba(12, 17, 17, 0.9);
+      border: 1px solid rgba(224, 220, 190, 0.28);
+      box-shadow: 0 20px 80px rgba(0, 0, 0, 0.45);
+    }
+
+    .card h1 {
+      margin: 9px 0 10px;
+      font-size: clamp(30px, 7vw, 50px);
+      line-height: 1;
+      letter-spacing: 2px;
+    }
+
+    .card p {
+      color: #c7cbc1;
+      line-height: 1.5;
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 9px;
+      margin: 22px 0;
+    }
+
+    .control {
+      padding: 10px;
+      color: #c7cbc1;
+      background: rgba(255, 255, 255, 0.05);
+      font-size: 12px;
+    }
+
+    .control strong {
+      display: block;
+      margin-bottom: 4px;
+      color: #e7d898;
+      font-size: 11px;
+      letter-spacing: 1px;
+    }
+
+    button {
+      width: 100%;
+      padding: 14px 18px;
+      border: 0;
+      color: #171b17;
+      background: #c5b879;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: bold;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    button:hover {
+      background: #ded29a;
+    }
+
+    .note {
+      margin-top: 13px;
+      color: #89918a;
+      font-size: 11px;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 520px) {
+      .card { padding: 24px; }
+      .top-left { top: 10px; left: 10px; min-width: 0; }
+      .top-right { top: 10px; right: 10px; }
+      .bottom-left { left: 10px; bottom: 10px; }
+      .bottom-right { right: 10px; bottom: 10px; min-width: 0; }
+    }
+
+/* Melhorias visuais da versão 1.1 */
+.hud-sub { margin-top: 8px; font-size: 11px; color: #d0d5c9; }
+#credits { position: fixed; z-index: 11; bottom: 7px; left: 50%; transform: translateX(-50%); font-size: 10px; color: #aeb8ae; text-shadow: 0 1px 4px #000; pointer-events: none; white-space: nowrap; }
+#credits a { color: #d4c789; pointer-events: auto; }
+body.in-game #credits { opacity: .4; }
+#crosshair { transition: width .1s, height .1s; }
+body.crouching #crosshair { filter: drop-shadow(0 0 3px #93c4a8); }
+button:focus-visible { outline: 3px solid #fff4b1; outline-offset: 3px; }
+@media (max-width: 520px) { #credits { font-size: 8px; } .controls { grid-template-columns: 1fr 1fr; } }
+
+
+/* === Zombie Arena v1.2.0 === */
+#hud .hud-sub{font-size:11px;color:#c9cec2;margin-top:7px}#hud .objective strong{color:#e7b76b}#hud .top-right strong{font-size:17px}#overlay{overflow-y:auto}#overlay .card{max-width:640px;max-height:95vh;overflow-y:auto}.setting-label{display:block;color:#d5bc79;font-size:11px;letter-spacing:2px;margin:12px 0 6px}#mapSelect{width:100%;padding:12px;background:#28332f;color:#fff;border:1px solid #7b856c;font-size:14px}#weaponBar{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);display:flex;gap:6px;max-width:100%;pointer-events:none}#weaponBar .slot{border:1px solid #7c826a;background:#111b1acc;padding:7px 10px;font-size:11px;white-space:nowrap}#weaponBar .slot.active{border-color:#ebc16c;background:#786036bb;color:white}#weaponPanel{position:fixed;inset:0;z-index:15;background:#050b0ddd;display:flex;align-items:center;justify-content:center;padding:20px}#weaponPanel.hidden{display:none}.weapon-card{max-width:820px;width:100%;max-height:90vh;overflow:auto;background:#192421;border:1px solid #768c78;padding:25px}.weapon-card h2{margin:8px 0}.weapon-card p{color:#c9caba;line-height:1.6}.weapon-choice{display:flex;align-items:center;justify-content:space-between;text-align:left;background:#2c3834;border:1px solid #526760;color:#eee;margin:8px 0;padding:12px;gap:15px;letter-spacing:0;text-transform:none}.weapon-choice:hover{background:#475b4f}.weapon-choice small{display:block;color:#d3d8c8;margin-top:5px;font-weight:normal}#closeWeapons{margin-top:14px}#credits{z-index:5}body.in-game #credits{opacity:.4}body:not(.in-game) #weaponBar{display:none}@media(max-width:640px){#weaponBar{bottom:92px;flex-wrap:wrap;justify-content:center}.slot{font-size:9px!important}.hud-panel{padding:8px!important}}
+
+.editor-link{display:block;text-align:center;padding:12px;margin:12px 0;border:1px solid #7fc777;color:#b9f4a4;text-decoration:none;background:#173025;font-weight:700;letter-spacing:1px}.editor-link:hover{background:#254a31}
+
+/* v1.5.1 — Compra clássica e skins */
+#weaponPanel .weapon-card{width:min(900px,96vw);max-width:900px;border:2px solid #72936b;background:linear-gradient(160deg,#1c2b2b,#10191a);box-shadow:0 12px 75px #000c}
+.buy-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}.buy-head h2{font-size:clamp(20px,3vw,33px);letter-spacing:2px}.buy-head p{font-size:12px}.buy-close{width:auto;min-width:115px;padding:10px;background:#3d5147;color:#f4f1df}.buy-breadcrumb{color:#a1caa4;font-size:11px;letter-spacing:2px;border-top:1px solid #425d4b;padding-top:10px}.buy-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin:14px 0}.buy-grid .weapon-choice{margin:0;min-height:68px}.buy-status{background:#14221b;padding:9px 12px;color:#e4d397;border-left:3px solid #b8b879;font-size:12px}.skin-area{padding:10px 0}.skin-area[hidden]{display:none}.skin-area h3{font-size:13px;letter-spacing:2px;color:#c2dd9b}.skin-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}.skin-swatch{background:#283b33;border:1px solid #53735c;color:#e6eee5;font-size:12px;text-align:left;display:flex;align-items:center;gap:8px;letter-spacing:0;padding:9px}.skin-dot{display:inline-block;width:23px;height:23px;border:1px solid #dce9d0;flex:none;border-radius:3px}.skin-swatch:hover{background:#47604d}#buyBack{margin-top:12px}#weaponBar .slot{max-width:200px;overflow:hidden;text-overflow:ellipsis}@media(max-width:600px){.buy-grid{grid-template-columns:1fr}.skin-grid{grid-template-columns:repeat(2,1fr)}}

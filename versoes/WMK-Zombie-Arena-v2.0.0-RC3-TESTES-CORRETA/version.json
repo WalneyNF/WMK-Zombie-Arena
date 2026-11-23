@@ -1,0 +1,15 @@
+{
+  "version": "2.0.0-rc3",
+  "status": "candidate",
+  "base": "1.9.6",
+  "publishedOnPages": false,
+  "changes": [
+    "Separação da tela de fim de partida",
+    "Correção de menu/pausa",
+    "Links Zombie Studio e Skin Studio",
+    "Tratamento de erro na inicialização",
+    "Alinhamento anatomico da cabeca, pescoco e tronco no Avatar Studio e na camera TPS",
+    "Zoom 3D padronizado nos editores de mapas, armas, zumbis e avatar com controles percentuais e IN/OUT"
+  ],
+  "multiplayer": false
+}

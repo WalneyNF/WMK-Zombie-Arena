@@ -1,0 +1,63 @@
+name: Criar pacote ZIP de cada versao
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag existente a publicar (ex.: v1.8.7)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Escolher versao
+        id: version
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            TAG="${GITHUB_REF_NAME}"
+          else
+            TAG="${{ inputs.tag }}"
+          fi
+          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Tag invalida: $TAG"; exit 1
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.version.outputs.tag }}
+          fetch-depth: 0
+      - name: Verificar arquivos do jogo
+        shell: bash
+        run: |
+          for file in index.html game.js style.css weapons.js editor.html map-library.js mapas/index.json LICENSE README.md; do
+            test -s "$file" || { echo "Arquivo faltando: $file"; exit 1; }
+          done
+          python3 -m json.tool mapas/index.json >/dev/null
+          node --check game.js
+      - name: Gerar ZIP com codigo-fonte e assets
+        shell: bash
+        run: |
+          VERSION="${{ steps.version.outputs.tag }}"
+          mkdir -p dist
+          git archive --format=zip --prefix="WMK-Zombie-Arena-$VERSION/" -o "dist/WMK-Zombie-Arena-$VERSION.zip" HEAD
+          unzip -t "dist/WMK-Zombie-Arena-$VERSION.zip" | tail -1
+      - name: Publicar no GitHub Releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.tag }}
+        shell: bash
+        run: |
+          FILE="dist/WMK-Zombie-Arena-$VERSION.zip"
+          if gh release view "$VERSION" >/dev/null 2>&1; then
+            echo "Release $VERSION ja existe: abortando para nao sobrescrever."
+            exit 1
+          fi
+          gh release create "$VERSION" "$FILE" --title "WMK Zombie Arena $VERSION" --generate-notes --verify-tag
