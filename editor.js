@@ -12,6 +12,8 @@ const grid=new THREE.GridHelper(40,40,0x9fc7a0,0x6e8975);grid.position.y=.01;sce
 const orbit=new OrbitControls(camera,renderer.domElement);orbit.target.set(0,0,0);orbit.enableDamping=true;orbit.mouseButtons={LEFT:THREE.MOUSE.PAN,MIDDLE:THREE.MOUSE.PAN,RIGHT:THREE.MOUSE.ROTATE};orbit.update();
 const transform=new TransformControls(camera,renderer.domElement);scene.add(transform);transform.addEventListener('dragging-changed',e=>orbit.enabled=!e.value);
 const ray=new THREE.Raycaster(),pointer=new THREE.Vector2();let objects=[],selected=null,history=[],redo=[],counter=1,skipHistory=false;
+let cityExtras={}; // Extras preservados no JSON de cidade
+
 const presets={floor:{w:8,h:.25,d:8,color:'#596463'},pillar:{w:.75,h:5,d:.75,color:'#7a8588'},beam:{w:6,h:.4,d:.5,color:'#475761'},pipe:{w:5,h:.4,d:.4,color:'#747f85'},tank:{w:2.5,h:3,d:2.5,color:'#617779'},machine:{w:3,h:1.8,d:2.3,color:'#5e7169'},shelf:{w:3,h:2.5,d:.75,color:'#866e55'},door:{w:1.5,h:2.5,d:.18,color:'#755948'},stairs:{w:3,h:1.6,d:3,color:'#7a827e'},fence:{w:5,h:2,d:.15,color:'#677d7b'},lamp:{w:.5,h:.4,d:.5,color:'#dbd9b0'},platform:{w:5,h:.35,d:5,color:'#657477'},wall:{w:5,h:3,d:.5,color:'#65746b'},crate:{w:1.8,h:1.8,d:1.8,color:'#886d48'},container:{w:6,h:2.6,d:2.7,color:'#46746e'},cover:{w:3,h:1.2,d:.8,color:'#888676'},building:{w:7,h:5,d:7,color:'#627176'},spawn:{w:.75,h:.75,d:.75,color:'#d64f3a'},player:{w:.75,h:1.7,d:.75,color:'#65cafa'},bombA:{w:1,h:.5,d:1,color:'#ffd468'},bombB:{w:1,h:.5,d:1,color:'#f2a261'}};
 
 // Biblioteca expandida: geometrias simples de prévia; substitua por GLB para detalhe final.
@@ -44,10 +46,10 @@ function select(m){selected=m;$('#modelPath').value=m?.userData.data.model||'';t
 function fillProperties(){if(!selected)return;const o=selected.userData.data;for(const [suffix,key] of [['Name','name'],['X','x'],['Y','y'],['Z','z'],['W','w'],['H','h'],['D','d'],['RY','ry'],['Color','color']])$('#prop'+suffix).value=key==='ry'?(o.ry*180/Math.PI).toFixed(1):o[key];$('#propSolid').checked=o.solid}
 function refreshList(){const list=$('#objectList');list.replaceChildren();for(const m of objects){let b=document.createElement('button');b.textContent=`${m.userData.data.type==='spawn'?'☣':m.userData.data.type==='player'?'♙':'▣'} ${m.userData.data.name}`;b.className=m===selected?'active':'';b.onclick=()=>select(m);list.append(b)}$('#stats').textContent=`${objects.length} objetos | ${objects.filter(m=>m.userData.data.type==='spawn').length} spawns`}
 function refresh(){refreshList();fillProperties();scheduleAutoSave()}
-function dump(){return {format:'wmk-zombie-map',version:1,name:$('#mapNameInput').value||'Meu mapa',objects:objects.map(m=>({...m.userData.data}))}}
+function dump(){return {...cityExtras,format:'wmk-zombie-map',version:1,name:$('#mapNameInput').value||'Meu mapa',objects:objects.map(m=>({...m.userData.data}))}}
 function snapshot(){if(skipHistory)return;history.push(JSON.stringify(dump()));if(history.length>50)history.shift();redo=[];scheduleAutoSave()}
 function clear(){select(null);for(const m of objects){scene.remove(m);m.geometry.dispose();m.material.dispose()}objects=[]}
-function load(data,record=true){if(!data||data.format!=='wmk-zombie-map'||!Array.isArray(data.objects)||data.objects.length>500)throw Error('Formato inválido (máximo 500 objetos)');if(record)snapshot();clear();$('#mapNameInput').value=String(data.name||'Meu mapa').slice(0,70);for(const raw of data.objects){const o=normal(raw);objects.push(meshFor(o))}refresh();message('Mapa carregado com '+objects.length+' objetos')}
+function load(data,record=true){if(!data||data.format!=='wmk-zombie-map'||!Array.isArray(data.objects)||data.objects.length>500)throw Error('Formato inválido (máximo 500 objetos)');if(record)snapshot();clear();cityExtras={};for(const key of ['size','world','roads','traffic','citySimulation','seed','generatedBy'])if(Object.hasOwn(data,key))cityExtras[key]=JSON.parse(JSON.stringify(data[key]));$('#mapNameInput').value=String(data.name||'Meu mapa').slice(0,70);for(const raw of data.objects){const o=normal(raw);objects.push(meshFor(o))}refresh();message('Mapa carregado com '+objects.length+' objetos')}
 function undo(){if(!history.length)return;redo.push(JSON.stringify(dump()));load(JSON.parse(history.pop()),false)}function redoAction(){if(!redo.length)return;history.push(JSON.stringify(dump()));load(JSON.parse(redo.pop()),false)}
 function remove(){if(!selected)return;snapshot();const m=selected;select(null);scene.remove(m);m.geometry.dispose();m.material.dispose();objects=objects.filter(x=>x!==m);refresh();message('Objeto excluído')}
 function duplicate(){if(!selected)return;snapshot();let d={...selected.userData.data,id:`obj_${counter++}`,name:selected.userData.data.name+'_copia',x:selected.userData.data.x+1.5,z:selected.userData.data.z+1.5};objects.push(meshFor(normal(d)));select(objects.at(-1));refresh()}
@@ -95,7 +97,7 @@ if(libraryContainer&&libraryQuery&&libraryCategory){
  libraryQuery.addEventListener('input',renderLibrary);libraryCategory.addEventListener('change',renderLibrary);renderLibrary();
 }$('#remove').onclick=remove;$('#duplicate').onclick=duplicate;
 $('#toggleGrid').onclick=()=>{grid.visible=!grid.visible;$('#toggleGrid').textContent='Grade: '+(grid.visible?'ligada':'desligada')};
-$('#newMap').onclick=()=>{if(!confirm('Criar outro mapa? O mapa atual será mantido como último salvo somente se você clicou em Salvar no navegador ou Exportar JSON.'))return;snapshot();clear();$('#mapNameInput').value='Novo mapa';add('player',{x:0,z:14});add('spawn',{x:-14,z:-14});add('spawn',{x:14,z:-14});persistNow();message('Mapa novo criado')};
+$('#newMap').onclick=()=>{if(!confirm('Criar outro mapa? O mapa atual será mantido como último salvo somente se você clicou em Salvar no navegador ou Exportar JSON.'))return;snapshot();clear();cityExtras={};$('#mapNameInput').value='Novo mapa';add('player',{x:0,z:14});add('spawn',{x:-14,z:-14});add('spawn',{x:14,z:-14});persistNow();message('Mapa novo criado')};
 function saveLocal(){
   persistNow();
   try{
